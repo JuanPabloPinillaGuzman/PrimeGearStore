@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 
@@ -21,6 +22,19 @@ type OrderResponse = {
       status: string;
       expiresAt: string;
     }>;
+    shipment: {
+      id: string;
+      status: string;
+      carrier: string | null;
+      service: string | null;
+      trackingNumber: string | null;
+      shippedAt: string | null;
+      deliveredAt: string | null;
+    } | null;
+    timeline: Array<{
+      status: "PAID" | "PACKING" | "SHIPPED" | "DELIVERED";
+      reached: boolean;
+    }>;
   };
 };
 
@@ -41,6 +55,7 @@ export default function OrderPage() {
   const [now, setNow] = useState(Date.now());
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [copyMessage, setCopyMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setInterval(() => setNow(Date.now()), 1000);
@@ -101,6 +116,11 @@ export default function OrderPage() {
   return (
     <main className="mx-auto max-w-2xl px-6 py-10">
       <h1 className="mb-2 text-3xl font-semibold">Order {orderNumber}</h1>
+      <div className="mb-3">
+        <Link className="rounded-md border px-3 py-2 text-sm" href={`/orders/${orderNumber}/receipt`}>
+          Ver recibo imprimible
+        </Link>
+      </div>
       {loading && <p className="text-sm text-muted-foreground">Cargando orden...</p>}
       {error && <p className="text-sm text-red-600">{error}</p>}
       {order && (
@@ -118,6 +138,41 @@ export default function OrderPage() {
           <p>
             Expira en: <strong>{remainingText ?? "N/A"}</strong>
           </p>
+          <div className="rounded-md border p-3">
+            <p className="mb-2 text-sm font-medium">Tracking</p>
+            <p className="text-sm">
+              Carrier: <strong>{order.shipment?.carrier ?? "N/A"}</strong>
+            </p>
+            <p className="text-sm">
+              Guia: <strong>{order.shipment?.trackingNumber ?? "N/A"}</strong>
+            </p>
+            {order.shipment?.trackingNumber && (
+              <button
+                className="mt-2 rounded-md border px-2 py-1 text-sm"
+                onClick={() => {
+                  void navigator.clipboard.writeText(order.shipment?.trackingNumber ?? "");
+                  setCopyMessage("Guia copiada.");
+                }}
+                type="button"
+              >
+                Copiar guia
+              </button>
+            )}
+            {copyMessage && <p className="mt-1 text-xs text-muted-foreground">{copyMessage}</p>}
+          </div>
+          <div className="rounded-md border p-3">
+            <p className="mb-2 text-sm font-medium">Timeline</p>
+            <div className="flex flex-wrap gap-2">
+              {order.timeline.map((step) => (
+                <span
+                  key={step.status}
+                  className={`rounded-full border px-3 py-1 text-xs ${step.reached ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
+                >
+                  {step.status}
+                </span>
+              ))}
+            </div>
+          </div>
         </div>
       )}
     </main>

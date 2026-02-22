@@ -11,6 +11,7 @@ export async function POST(request: Request) {
 
     return jsonOk({ data }, 201);
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError(error, request);
   }
 }
+

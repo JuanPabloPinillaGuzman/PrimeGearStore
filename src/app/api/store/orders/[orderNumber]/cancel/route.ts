@@ -9,13 +9,13 @@ type Params = {
   }>;
 };
 
-export async function POST(_request: Request, { params }: Params) {
+export async function POST(request: Request, { params }: Params) {
   try {
     const routeParams = await params;
     const { orderNumber } = parseOrThrow(orderNumberParamsSchema, routeParams);
     const data = await cancelOrderByNumber({ orderNumber });
     return jsonOk({ data });
   } catch (error) {
-    return handleRouteError(error);
+    return handleRouteError(error, request);
   }
 }

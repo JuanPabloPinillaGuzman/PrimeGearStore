@@ -1,4 +1,6 @@
 export type AppErrorCode =
+  | "UNAUTHORIZED"
+  | "FORBIDDEN"
   | "BAD_REQUEST"
   | "VALIDATION_ERROR"
   | "NOT_FOUND"

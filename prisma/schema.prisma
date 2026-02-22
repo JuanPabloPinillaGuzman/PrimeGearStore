@@ -53,6 +53,52 @@ enum StockReservationStatus {
   @@schema("webstore")
 }
 
+enum OrderPaymentStatus {
+  INITIATED
+  PENDING
+  APPROVED
+  DECLINED
+  FAILED
+  REFUNDED
+
+  @@map("order_payment_status")
+  @@schema("webstore")
+}
+
+enum SaleStatus {
+  DRAFT
+  ISSUED
+  PAID
+  CANCELLED
+  REFUNDED
+
+  @@map("sale_status")
+  @@schema("inventory")
+}
+
+enum PaymentMethod {
+  CASH
+  CARD
+  TRANSFER
+  NEQUI
+  DAVIPLATA
+  OTHER
+
+  @@map("payment_method")
+  @@schema("inventory")
+}
+
+enum StockMovementType {
+  IN
+  OUT
+  ADJUST
+  RETURN_IN
+  RETURN_OUT
+
+  @@map("stock_movement_type")
+  @@schema("inventory")
+}
+
 model Category {
   id       Int       @id @default(autoincrement())
   name     String    @unique @db.VarChar(120)
@@ -65,18 +111,66 @@ model Category {
 model Product {
   id                Int                @id @default(autoincrement())
   sku               String?            @unique @db.VarChar(60)
+  slug              String?            @unique @db.VarChar(220)
   name              String             @db.VarChar(180)
   categoryId        Int?               @map("category_id")
   isActive          Boolean            @default(true) @map("is_active")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
   category          Category?          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productPrices     ProductPrice[]
+  variants          ProductVariant[]
   productImages     ProductImage[]
   cartItems         CartItem[]
   orderItems        OrderItem[]
+  saleItems         SaleItem[]
+  purchaseItems     PurchaseItem[]
+  inventoryMovements InventoryMovement[]
   stockReservations StockReservation[]
 
   @@map("products")
+  @@schema("inventory")
+}
+
+model Supplier {
+  id        Int        @id @default(autoincrement())
+  name      String     @db.VarChar(180)
+  document  String?    @db.VarChar(30)
+  phone     String?    @db.VarChar(30)
+  purchases Purchase[]
+
+  @@map("suppliers")
+  @@schema("inventory")
+}
+
+model Purchase {
+  id           BigInt       @id @default(autoincrement())
+  supplierId   Int          @map("supplier_id")
+  branchId     Int?         @map("branch_id")
+  purchaseDate DateTime     @default(now()) @map("purchase_date") @db.Timestamp(6)
+  currency     String       @default("COP") @db.VarChar(3)
+  subtotal     Decimal      @default(0) @db.Decimal(14, 2)
+  taxTotal     Decimal      @default(0) @map("tax_total") @db.Decimal(14, 2)
+  total        Decimal      @default(0) @db.Decimal(14, 2)
+  items        PurchaseItem[]
+  supplier     Supplier     @relation(fields: [supplierId], references: [id], map: "purchases_supplier_id_fkey")
+
+  @@map("purchases")
+  @@schema("inventory")
+}
+
+model PurchaseItem {
+  id         BigInt   @id @default(autoincrement())
+  purchaseId BigInt   @map("purchase_id")
+  productId  Int      @map("product_id")
+  quantity   Decimal  @db.Decimal(14, 3)
+  unitCost   Decimal  @map("unit_cost") @db.Decimal(14, 2)
+  lineTotal  Decimal  @default(0) @map("line_total") @db.Decimal(14, 2)
+  purchase   Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade, map: "purchase_items_purchase_id_fkey")
+  product    Product  @relation(fields: [productId], references: [id], map: "purchase_items_product_id_fkey")
+
+  @@index([productId], map: "idx_purchase_items_product_id")
+  @@index([purchaseId], map: "idx_purchase_items_purchase_id")
+  @@map("purchase_items")
   @@schema("inventory")
 }
 
@@ -85,6 +179,7 @@ model PriceList {
   name          String         @unique @db.VarChar(80)
   isDefault     Boolean        @default(false) @map("is_default")
   productPrices ProductPrice[]
+  variantPrices VariantPrice[]
 
   @@map("price_lists")
   @@schema("inventory")
@@ -129,10 +224,18 @@ model Cart {
   status     CartStatus @default(OPEN)
   createdAt  DateTime   @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt  DateTime   @default(now()) @map("updated_at") @db.Timestamp(6)
+  lastActivityAt DateTime @default(now()) @map("last_activity_at") @db.Timestamp(6)
+  recoveryToken  String?  @unique @map("recovery_token") @db.VarChar(120)
+  recoverySentAt DateTime? @map("recovery_sent_at") @db.Timestamp(6)
+  appliedBundleId BigInt? @map("applied_bundle_id")
   items      CartItem[]
+  notificationOutbox NotificationOutbox[]
+  events     Event[]
+  appliedBundle Bundle? @relation(fields: [appliedBundleId], references: [id], map: "fk_carts_bundle")
 
   @@index([customerId], map: "idx_carts_customer")
   @@index([status], map: "idx_carts_status")
+  @@index([lastActivityAt], map: "idx_carts_last_activity")
   @@map("carts")
   @@schema("webstore")
 }
@@ -141,15 +244,18 @@ model CartItem {
   id                BigInt   @id @default(autoincrement())
   cartId            String   @map("cart_id") @db.Uuid
   productId         Int      @map("product_id")
+  variantId         BigInt?  @map("variant_id")
   quantity          Decimal  @db.Decimal(14, 3)
   unitPriceSnapshot Decimal  @map("unit_price_snapshot") @db.Decimal(14, 2)
   currency          String   @default("COP") @db.VarChar(3)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   cart              Cart     @relation(fields: [cartId], references: [id], onDelete: Cascade, map: "fk_cart_items_cart")
   product           Product  @relation(fields: [productId], references: [id], map: "fk_cart_items_product")
+  variant           ProductVariant? @relation(fields: [variantId], references: [id], map: "fk_cart_items_variant")
 
-  @@unique([cartId, productId], map: "ux_cart_items_cart_product")
+  @@unique([cartId, productId, variantId], map: "ux_cart_items_cart_product_variant")
   @@index([productId], map: "idx_cart_items_product")
+  @@index([variantId], map: "idx_cart_items_variant")
   @@map("cart_items")
   @@schema("webstore")
 }
@@ -166,12 +272,17 @@ model Order {
   taxTotal          Decimal           @default(0) @map("tax_total") @db.Decimal(14, 2)
   shippingTotal     Decimal           @default(0) @map("shipping_total") @db.Decimal(14, 2)
   total             Decimal           @default(0) @db.Decimal(14, 2)
+  couponCode        String?           @map("coupon_code") @db.VarChar(40)
   notes             String?
   createdAt         DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
   updatedAt         DateTime          @default(now()) @map("updated_at") @db.Timestamp(6)
   items             OrderItem[]
+  payments          OrderPayment[]
   shipments         Shipment[]
   stockReservations StockReservation[]
+  notificationOutbox NotificationOutbox[]
+  couponRedemption  CouponRedemption?
+  events            Event[]
 
   @@index([branchId], map: "idx_orders_branch")
   @@index([customerId], map: "idx_orders_customer")
@@ -180,10 +291,134 @@ model Order {
   @@schema("webstore")
 }
 
+model Coupon {
+  id            BigInt              @id @default(autoincrement())
+  code          String              @unique @db.VarChar(40)
+  type          String              @db.VarChar(10)
+  value         Decimal             @db.Decimal(14, 2)
+  currency      String              @default("COP") @db.VarChar(3)
+  minSubtotal   Decimal             @default(0) @map("min_subtotal") @db.Decimal(14, 2)
+  startsAt      DateTime?           @map("starts_at") @db.Timestamp(6)
+  endsAt        DateTime?           @map("ends_at") @db.Timestamp(6)
+  maxRedemptions Int?               @map("max_redemptions")
+  redeemedCount Int                 @default(0) @map("redeemed_count")
+  isActive      Boolean             @default(true) @map("is_active")
+  createdAt     DateTime            @default(now()) @map("created_at") @db.Timestamp(6)
+  redemptions   CouponRedemption[]
+
+  @@map("coupons")
+  @@schema("webstore")
+}
+
+model CouponRedemption {
+  id         BigInt    @id @default(autoincrement())
+  couponId    BigInt    @map("coupon_id")
+  orderId     BigInt    @unique @map("order_id")
+  customerId  Int?      @map("customer_id")
+  redeemedAt  DateTime  @default(now()) @map("redeemed_at") @db.Timestamp(6)
+  coupon      Coupon    @relation(fields: [couponId], references: [id], onDelete: Cascade, map: "fk_coupon_redemptions_coupon")
+  order       Order     @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_coupon_redemptions_order")
+
+  @@unique([couponId, orderId], map: "ux_coupon_redemptions_coupon_order")
+  @@index([couponId], map: "idx_coupon_redemptions_coupon")
+  @@map("coupon_redemptions")
+  @@schema("webstore")
+}
+
+model NotificationOutbox {
+  id        BigInt    @id @default(autoincrement())
+  eventType String    @map("event_type") @db.VarChar(60)
+  orderId    BigInt?   @map("order_id")
+  cartId     String?   @map("cart_id") @db.Uuid
+  channel    String    @default("EMAIL") @db.VarChar(20)
+  toAddress  String    @map("to_address") @db.VarChar(180)
+  payload    Json
+  status     String    @default("PENDING") @db.VarChar(20)
+  attempts   Int       @default(0)
+  lastError  String?   @map("last_error")
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamp(6)
+  sentAt     DateTime? @map("sent_at") @db.Timestamp(6)
+  order      Order?    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  cart       Cart?     @relation(fields: [cartId], references: [id], onDelete: Cascade, map: "fk_notification_outbox_cart")
+
+  @@unique([eventType, orderId, channel])
+  @@index([status, createdAt], map: "idx_notification_outbox_status_created")
+  @@index([cartId], map: "idx_notification_outbox_cart")
+  @@map("notification_outbox")
+  @@schema("webstore")
+}
+
+model Bundle {
+  id            BigInt       @id @default(autoincrement())
+  name          String       @db.VarChar(120)
+  isActive      Boolean      @default(true) @map("is_active")
+  discountType  String       @map("discount_type") @db.VarChar(10)
+  discountValue Decimal      @map("discount_value") @db.Decimal(14, 2)
+  startsAt      DateTime?    @map("starts_at") @db.Timestamp(6)
+  endsAt        DateTime?    @map("ends_at") @db.Timestamp(6)
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamp(6)
+  items         BundleItem[]
+  carts         Cart[]
+
+  @@map("bundles")
+  @@schema("webstore")
+}
+
+model BundleItem {
+  bundleId   BigInt         @map("bundle_id")
+  variantId  BigInt         @map("variant_id")
+  quantity   Decimal        @default(1) @db.Decimal(14, 3)
+  bundle     Bundle         @relation(fields: [bundleId], references: [id], onDelete: Cascade, map: "fk_bundle_items_bundle")
+  variant    ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade, map: "fk_bundle_items_variant")
+
+  @@id([bundleId, variantId])
+  @@index([variantId], map: "idx_bundle_items_variant")
+  @@map("bundle_items")
+  @@schema("webstore")
+}
+
+model Event {
+  id         BigInt   @id @default(autoincrement())
+  eventName  String   @map("event_name") @db.VarChar(80)
+  entityType String   @map("entity_type") @db.VarChar(30)
+  entityId   String   @map("entity_id") @db.VarChar(80)
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  payload    Json?
+  cartId     String?  @map("cart_id") @db.Uuid
+  orderId    BigInt?  @map("order_id")
+  cart       Cart?    @relation(fields: [cartId], references: [id], onDelete: SetNull, map: "fk_events_cart")
+  order      Order?   @relation(fields: [orderId], references: [id], onDelete: SetNull, map: "fk_events_order")
+
+  @@index([eventName, createdAt], map: "idx_events_name_created")
+  @@index([entityType, entityId], map: "idx_events_entity")
+  @@map("events")
+  @@schema("webstore")
+}
+
+model OrderPayment {
+  id          BigInt             @id @default(autoincrement())
+  orderId     BigInt             @map("order_id")
+  provider    String             @db.VarChar(50)
+  status      OrderPaymentStatus @default(INITIATED)
+  amount      Decimal            @db.Decimal(14, 2)
+  currency    String             @default("COP") @db.VarChar(3)
+  providerRef String?            @map("provider_ref") @db.VarChar(120)
+  rawPayload  Json?              @map("raw_payload")
+  createdAt   DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
+  updatedAt   DateTime           @default(now()) @map("updated_at") @db.Timestamp(6)
+  order       Order              @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_order_payments_order")
+
+  @@index([orderId], map: "idx_order_payments_order")
+  @@index([providerRef], map: "idx_order_payments_provider_ref")
+  @@map("order_payments")
+  @@schema("webstore")
+}
+
 model OrderItem {
   id                BigInt   @id @default(autoincrement())
   orderId           BigInt   @map("order_id")
   productId         Int      @map("product_id")
+  variantId         BigInt?  @map("variant_id")
   quantity          Decimal  @db.Decimal(14, 3)
   unitPriceSnapshot Decimal  @map("unit_price_snapshot") @db.Decimal(14, 2)
   discountAmount    Decimal  @default(0) @map("discount_amount") @db.Decimal(14, 2)
@@ -194,11 +429,82 @@ model OrderItem {
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamp(6)
   order             Order    @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_order_items_order")
   product           Product  @relation(fields: [productId], references: [id], map: "fk_order_items_product")
+  variant           ProductVariant? @relation(fields: [variantId], references: [id], map: "fk_order_items_variant")
 
   @@index([orderId], map: "idx_order_items_order")
   @@index([productId], map: "idx_order_items_product")
+  @@index([variantId], map: "idx_order_items_variant")
   @@map("order_items")
   @@schema("webstore")
+}
+
+model ProductVariant {
+  id                     BigInt                    @id @default(autoincrement())
+  productId              Int                       @map("product_id")
+  sku                    String?                   @unique @db.VarChar(60)
+  name                   String                    @db.VarChar(120)
+  attributes             Json
+  isActive               Boolean                   @default(true) @map("is_active")
+  product                Product                   @relation(fields: [productId], references: [id], onDelete: Cascade, map: "fk_product_variants_product")
+  prices                 VariantPrice[]
+  cartItems              CartItem[]
+  orderItems             OrderItem[]
+  stockReservations      StockReservation[]
+  variantInventoryMovements VariantInventoryMovement[]
+  avgCosts                VariantAvgCost[]
+  bundleItems             BundleItem[]
+
+  @@index([productId], map: "idx_product_variants_product")
+  @@map("product_variants")
+  @@schema("inventory")
+}
+
+model VariantAvgCost {
+  id        BigInt         @id @default(autoincrement())
+  variantId BigInt         @map("variant_id")
+  branchId  Int?           @map("branch_id")
+  avgCost   Decimal        @default(0) @map("avg_cost") @db.Decimal(14, 2)
+  updatedAt DateTime       @default(now()) @map("updated_at") @db.Timestamp(6)
+  variant   ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade, map: "fk_variant_avg_cost_variant")
+
+  @@unique([variantId, branchId], map: "ux_variant_avg_cost_variant_branch")
+  @@index([variantId], map: "idx_variant_avg_cost_variant")
+  @@map("variant_avg_cost")
+  @@schema("inventory")
+}
+
+model VariantPrice {
+  id          BigInt         @id @default(autoincrement())
+  variantId   BigInt         @map("variant_id")
+  priceListId Int            @map("price_list_id")
+  salePrice   Decimal        @map("sale_price") @db.Decimal(14, 2)
+  currency    String         @default("COP") @db.VarChar(3)
+  validFrom   DateTime       @default(dbgenerated("CURRENT_DATE")) @map("valid_from") @db.Date
+  validTo     DateTime?      @map("valid_to") @db.Date
+  variant     ProductVariant @relation(fields: [variantId], references: [id], onDelete: Cascade, map: "fk_variant_prices_variant")
+  priceList   PriceList      @relation(fields: [priceListId], references: [id], onDelete: Cascade, map: "fk_variant_prices_price_list")
+
+  @@unique([variantId, priceListId, validFrom], map: "ux_variant_prices_variant_list_valid_from")
+  @@index([variantId], map: "idx_variant_prices_variant")
+  @@map("variant_prices")
+  @@schema("inventory")
+}
+
+model VariantInventoryMovement {
+  id             BigInt            @id @default(autoincrement())
+  branchId       Int?              @map("branch_id")
+  variantId      BigInt            @map("variant_id")
+  movementType   StockMovementType @map("movement_type")
+  quantity       Decimal           @db.Decimal(14, 3)
+  unitCost       Decimal           @default(0) @map("unit_cost") @db.Decimal(14, 2)
+  referenceTable String?           @map("reference_table") @db.VarChar(40)
+  referenceId    BigInt?           @map("reference_id")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  variant        ProductVariant    @relation(fields: [variantId], references: [id], onDelete: Cascade, map: "fk_variant_inventory_movements_variant")
+
+  @@index([variantId, branchId, createdAt], map: "idx_variant_inventory_movements_variant_branch_date")
+  @@map("variant_inventory_movements")
+  @@schema("inventory")
 }
 
 model Shipment {
@@ -225,15 +531,92 @@ model StockReservation {
   orderId   BigInt                 @map("order_id")
   branchId  Int?                   @map("branch_id")
   productId Int                    @map("product_id")
+  variantId BigInt?                @map("variant_id")
   quantity  Decimal                @db.Decimal(14, 3)
   status    StockReservationStatus @default(ACTIVE)
   expiresAt DateTime               @map("expires_at") @db.Timestamp(6)
   createdAt DateTime               @default(now()) @map("created_at") @db.Timestamp(6)
   order     Order                  @relation(fields: [orderId], references: [id], onDelete: Cascade, map: "fk_stock_res_order")
   product   Product                @relation(fields: [productId], references: [id], map: "fk_stock_res_product")
+  variant   ProductVariant?        @relation(fields: [variantId], references: [id], map: "fk_stock_res_variant")
 
   @@index([orderId], map: "idx_stock_res_order")
   @@index([productId, branchId, status, expiresAt], map: "idx_stock_res_lookup")
+  @@index([variantId, branchId, status, expiresAt], map: "idx_stock_res_variant_lookup")
   @@map("stock_reservations")
   @@schema("webstore")
+}
+
+model Sale {
+  id            BigInt        @id @default(autoincrement())
+  branchId      Int?          @map("branch_id")
+  customerId    Int?          @map("customer_id")
+  employeeId    Int?          @map("employee_id")
+  status        SaleStatus    @default(ISSUED)
+  saleDate      DateTime      @default(now()) @map("sale_date") @db.Timestamp(6)
+  currency      String        @default("COP") @db.VarChar(3)
+  subtotal      Decimal       @default(0) @db.Decimal(14, 2)
+  discountTotal Decimal       @default(0) @map("discount_total") @db.Decimal(14, 2)
+  taxTotal      Decimal       @default(0) @map("tax_total") @db.Decimal(14, 2)
+  total         Decimal       @default(0) @db.Decimal(14, 2)
+  notes         String?
+  items         SaleItem[]
+  payments      SalePayment[]
+
+  @@index([customerId], map: "idx_sales_customer_id")
+  @@index([saleDate], map: "idx_sales_sale_date")
+  @@map("sales")
+  @@schema("inventory")
+}
+
+model SaleItem {
+  id            BigInt   @id @default(autoincrement())
+  saleId        BigInt   @map("sale_id")
+  productId     Int      @map("product_id")
+  quantity      Decimal  @db.Decimal(14, 3)
+  unitSalePrice Decimal  @map("unit_sale_price") @db.Decimal(14, 2)
+  unitCost      Decimal  @map("unit_cost") @db.Decimal(14, 2)
+  discountAmount Decimal @default(0) @map("discount_amount") @db.Decimal(14, 2)
+  taxAmount     Decimal  @default(0) @map("tax_amount") @db.Decimal(14, 2)
+  lineSubtotal  Decimal  @default(0) @map("line_subtotal") @db.Decimal(14, 2)
+  lineTotal     Decimal  @default(0) @map("line_total") @db.Decimal(14, 2)
+  grossProfit   Decimal  @default(0) @map("gross_profit") @db.Decimal(14, 2)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  sale          Sale     @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "sale_items_sale_id_fkey")
+  product       Product  @relation(fields: [productId], references: [id], map: "sale_items_product_id_fkey")
+
+  @@index([productId], map: "idx_sale_items_product_id")
+  @@index([saleId], map: "idx_sale_items_sale_id")
+  @@map("sale_items")
+  @@schema("inventory")
+}
+
+model SalePayment {
+  id        BigInt        @id @default(autoincrement())
+  saleId    BigInt        @map("sale_id")
+  method    PaymentMethod
+  amount    Decimal       @db.Decimal(14, 2)
+  paidAt    DateTime      @default(now()) @map("paid_at") @db.Timestamp(6)
+  reference String?       @db.VarChar(80)
+  sale      Sale          @relation(fields: [saleId], references: [id], onDelete: Cascade, map: "sale_payments_sale_id_fkey")
+
+  @@map("sale_payments")
+  @@schema("inventory")
+}
+
+model InventoryMovement {
+  id             BigInt            @id @default(autoincrement())
+  branchId       Int?              @map("branch_id")
+  productId      Int               @map("product_id")
+  movementType   StockMovementType @map("movement_type")
+  quantity       Decimal           @db.Decimal(14, 3)
+  unitCost       Decimal           @default(0) @map("unit_cost") @db.Decimal(14, 2)
+  referenceTable String?           @map("reference_table") @db.VarChar(40)
+  referenceId    BigInt?           @map("reference_id")
+  createdAt      DateTime          @default(now()) @map("created_at") @db.Timestamp(6)
+  product        Product           @relation(fields: [productId], references: [id], map: "inventory_movements_product_id_fkey")
+
+  @@index([productId, branchId, createdAt], map: "idx_inventory_movements_prod_branch_date")
+  @@map("inventory_movements")
+  @@schema("inventory")
 }

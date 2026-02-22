@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useState } from "react";
+import Link from "next/link";
 
 type CreateProductResponse = {
   data: {
@@ -58,6 +59,29 @@ export default function AdminProductsPage() {
   return (
     <main className="mx-auto max-w-xl px-6 py-10">
       <h1 className="mb-6 text-3xl font-semibold">Admin: Crear Producto</h1>
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/orders">
+          Pedidos
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/fulfillment">
+          Fulfillment
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/purchases">
+          Compras
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/inventory/stock">
+          Stock
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/reports">
+          Reportes
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/coupons">
+          Cupones
+        </Link>
+        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/variants">
+          Variantes
+        </Link>
+      </div>
       <form className="space-y-4 rounded-lg border p-4" onSubmit={handleSubmit}>
         <div className="space-y-1">
           <label className="text-sm font-medium" htmlFor="name">
