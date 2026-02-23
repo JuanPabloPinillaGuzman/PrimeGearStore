@@ -126,9 +126,34 @@ model Product {
   purchaseItems     PurchaseItem[]
   inventoryMovements InventoryMovement[]
   stockReservations StockReservation[]
+  wishlistItems      WishlistItem[]
 
   @@map("products")
   @@schema("inventory")
+}
+
+model Wishlist {
+  id         BigInt         @id @default(autoincrement())
+  customerId Int            @unique @map("customer_id")
+  createdAt  DateTime       @default(now()) @map("created_at") @db.Timestamp(6)
+  items      WishlistItem[]
+
+  @@map("wishlists")
+  @@schema("webstore")
+}
+
+model WishlistItem {
+  id         BigInt   @id @default(autoincrement())
+  wishlistId BigInt   @map("wishlist_id")
+  productId  Int      @map("product_id")
+  createdAt  DateTime @default(now()) @map("created_at") @db.Timestamp(6)
+  wishlist   Wishlist @relation(fields: [wishlistId], references: [id], onDelete: Cascade, map: "fk_wishlist_items_wishlist")
+  product    Product  @relation(fields: [productId], references: [id], onDelete: Cascade, map: "fk_wishlist_items_product")
+
+  @@unique([wishlistId, productId], map: "ux_wishlist_items_wishlist_product")
+  @@index([productId], map: "idx_wishlist_items_product")
+  @@map("wishlist_items")
+  @@schema("webstore")
 }
 
 model Supplier {

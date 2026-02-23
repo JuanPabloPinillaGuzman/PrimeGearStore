@@ -7,6 +7,9 @@ import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modu
 import type {
   AddCartItemInputDto,
   AddCartItemOutputDto,
+  GetCartOutputDto,
+  GetCartQueryDto,
+  RemoveCartItemInputDto,
   ApplyBundleInputDto,
   ApplyBundleOutputDto,
   BundleApplicableOutputDto,
@@ -16,6 +19,7 @@ import type {
   CheckoutOutputDto,
   OrderDetailsDto,
   RecoverCartByTokenOutputDto,
+  UpdateCartItemInputDto,
 } from "@/modules/webstore/dto";
 import {
   applyBundleToCart as applyBundleToCartRepo,
@@ -29,6 +33,8 @@ import {
   findDefaultValidPricesByProductIds,
   findDefaultValidVariantPrice,
   findCartBundleForCheckout,
+  findCartByIdForView,
+  findCartItemById,
   findCartByRecoveryToken,
   findOpenCartById,
   findOpenCartBySession,
@@ -40,9 +46,11 @@ import {
   markCartAsCheckedOut,
   releaseActiveReservations,
   touchCartActivity,
+  updateCartItemQuantity,
   updateOrderStatus,
   upsertCartItem,
   clearCartRecoveryState,
+  deleteCartItemById,
   listActiveBundlesWithItems,
   withTransaction,
 } from "@/modules/webstore/repo";
@@ -284,6 +292,69 @@ export async function addItemToCart(input: AddCartItemInputDto): Promise<AddCart
       currency: item.currency,
     },
   };
+}
+
+export async function getCartById(query: GetCartQueryDto): Promise<GetCartOutputDto> {
+  const cart = await findCartByIdForView(query.cartId);
+  if (!cart) {
+    throw new AppError("NOT_FOUND", 404, "Cart not found.");
+  }
+
+  const subtotal = cart.items.reduce(
+    (acc, item) => acc.plus(item.unitPriceSnapshot.mul(item.quantity)),
+    new Prisma.Decimal(0),
+  );
+
+  return {
+    cartId: cart.id,
+    status: cart.status,
+    items: cart.items.map((item) => ({
+      id: item.id.toString(),
+      productId: item.productId,
+      productName: item.product.name,
+      variantId: item.variantId?.toString() ?? null,
+      variantName: item.variant?.name ?? null,
+      quantity: item.quantity.toString(),
+      unitPriceSnapshot: item.unitPriceSnapshot.toString(),
+      lineTotal: item.unitPriceSnapshot.mul(item.quantity).toString(),
+      currency: item.currency,
+    })),
+    totals: {
+      subtotal: subtotal.toString(),
+      currency: cart.items[0]?.currency ?? "COP",
+      itemsCount: cart.items.length,
+    },
+    appliedBundle: cart.appliedBundle
+      ? {
+          bundleId: cart.appliedBundle.id.toString(),
+          name: cart.appliedBundle.name,
+        }
+      : null,
+  };
+}
+
+export async function updateCartItem(input: UpdateCartItemInputDto): Promise<GetCartOutputDto> {
+  const itemId = BigInt(input.itemId);
+  const existing = await findCartItemById(itemId);
+  if (!existing || existing.cartId !== input.cartId) {
+    throw new AppError("NOT_FOUND", 404, "Cart item not found.");
+  }
+
+  await updateCartItemQuantity(itemId, new Prisma.Decimal(input.quantity));
+  await touchCartActivity(input.cartId);
+  return getCartById({ cartId: input.cartId });
+}
+
+export async function removeCartItem(input: RemoveCartItemInputDto): Promise<GetCartOutputDto> {
+  const itemId = BigInt(input.itemId);
+  const existing = await findCartItemById(itemId);
+  if (!existing || existing.cartId !== input.cartId) {
+    throw new AppError("NOT_FOUND", 404, "Cart item not found.");
+  }
+
+  await deleteCartItemById(itemId);
+  await touchCartActivity(input.cartId);
+  return getCartById({ cartId: input.cartId });
 }
 
 export async function getRecoverCartByToken(token: string): Promise<RecoverCartByTokenOutputDto> {

@@ -1,133 +1,67 @@
-"use client";
-
-import { FormEvent, useState } from "react";
 import Link from "next/link";
 
-type CreateProductResponse = {
-  data: {
-    id: number;
-    name: string;
-    sku: string | null;
-    categoryId: number | null;
-    isActive: boolean;
-  };
-};
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
-export default function AdminProductsPage() {
-  const [name, setName] = useState("");
-  const [sku, setSku] = useState("");
-  const [categoryId, setCategoryId] = useState("");
-  const [message, setMessage] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
+const kpis = [
+  { label: "Pedidos hoy", value: "TODO", description: "Conectar endpoint KPI si quieres métricas reales." },
+  { label: "Ventas hoy", value: "TODO", description: "Disponible vía reportes; pendiente consolidar dashboard." },
+  { label: "Reservas activas", value: "TODO", description: "Se puede exponer en /api/admin/dashboard." },
+  { label: "Outbox pendientes", value: "TODO", description: "Útil para monitorear notificaciones." },
+];
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setIsSaving(true);
-    setMessage(null);
+const quickLinks = [
+  { href: "/admin/orders", label: "Gestionar pedidos" },
+  { href: "/admin/products", label: "Productos" },
+  { href: "/admin/stock", label: "Stock" },
+  { href: "/admin/purchases", label: "Compras" },
+  { href: "/admin/reports", label: "Reportes" },
+  { href: "/admin/coupons", label: "Cupones" },
+];
 
-    try {
-      const payload = {
-        name,
-        sku: sku || undefined,
-        categoryId: categoryId ? Number(categoryId) : undefined,
-      };
-
-      const response = await fetch("/api/admin/products", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      });
-
-      if (!response.ok) {
-        throw new Error("Failed to create product.");
-      }
-
-      const body = (await response.json()) as CreateProductResponse;
-      setMessage(`Producto creado con ID ${body.data.id}.`);
-      setName("");
-      setSku("");
-      setCategoryId("");
-    } catch {
-      setMessage("No fue posible crear el producto.");
-    } finally {
-      setIsSaving(false);
-    }
-  }
-
+export default function AdminDashboardPage() {
   return (
-    <main className="mx-auto max-w-xl px-6 py-10">
-      <h1 className="mb-6 text-3xl font-semibold">Admin: Crear Producto</h1>
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/orders">
-          Pedidos
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/fulfillment">
-          Fulfillment
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/purchases">
-          Compras
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/inventory/stock">
-          Stock
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/reports">
-          Reportes
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/coupons">
-          Cupones
-        </Link>
-        <Link className="rounded-md border px-3 py-2 text-sm" href="/admin/variants">
-          Variantes
-        </Link>
-      </div>
-      <form className="space-y-4 rounded-lg border p-4" onSubmit={handleSubmit}>
-        <div className="space-y-1">
-          <label className="text-sm font-medium" htmlFor="name">
-            Nombre
-          </label>
-          <input
-            id="name"
-            className="w-full rounded-md border px-3 py-2"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            required
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium" htmlFor="sku">
-            SKU (opcional)
-          </label>
-          <input
-            id="sku"
-            className="w-full rounded-md border px-3 py-2"
-            value={sku}
-            onChange={(event) => setSku(event.target.value)}
-          />
-        </div>
-        <div className="space-y-1">
-          <label className="text-sm font-medium" htmlFor="categoryId">
-            Category ID (opcional)
-          </label>
-          <input
-            id="categoryId"
-            className="w-full rounded-md border px-3 py-2"
-            type="number"
-            min={1}
-            value={categoryId}
-            onChange={(event) => setCategoryId(event.target.value)}
-          />
-        </div>
-        <button
-          type="submit"
-          disabled={isSaving}
-          className="rounded-md bg-primary px-4 py-2 text-primary-foreground disabled:opacity-70"
-        >
-          {isSaving ? "Guardando..." : "Crear producto"}
-        </button>
-      </form>
-      {message && <p className="mt-4 text-sm">{message}</p>}
-    </main>
+    <div className="space-y-6">
+      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        {kpis.map((kpi) => (
+          <Card key={kpi.label} className="shadow-sm">
+            <CardHeader className="gap-1">
+              <CardDescription>{kpi.label}</CardDescription>
+              <CardTitle className="text-2xl">{kpi.value}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-muted-foreground text-xs">{kpi.description}</p>
+            </CardContent>
+          </Card>
+        ))}
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Accesos rápidos</CardTitle>
+            <CardDescription>Acciones frecuentes del backoffice.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-2 sm:grid-cols-2">
+            {quickLinks.map((item) => (
+              <Button key={item.href} asChild variant="outline" className="justify-start">
+                <Link href={item.href}>{item.label}</Link>
+              </Button>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Próximo paso</CardTitle>
+            <CardDescription>Si quieres KPIs reales, agrega un endpoint agregado.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-2 text-sm text-muted-foreground">
+            <p>`GET /api/admin/dashboard` puede consolidar conteos y ventas del día.</p>
+            <p>Por ahora el dashboard prioriza navegación y consistencia visual.</p>
+          </CardContent>
+        </Card>
+      </section>
+    </div>
   );
 }

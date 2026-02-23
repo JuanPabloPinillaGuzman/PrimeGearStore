@@ -17,6 +17,21 @@ export const addCartItemSchema = z
     path: ["variantId"],
   });
 
+export const getCartQuerySchema = z.object({
+  cartId: z.string().uuid(),
+});
+
+export const updateCartItemSchema = z.object({
+  cartId: z.string().uuid(),
+  itemId: z.union([z.string().regex(/^\d+$/), z.number().int().positive()]),
+  quantity: z.number().positive(),
+});
+
+export const removeCartItemSchema = z.object({
+  cartId: z.string().uuid(),
+  itemId: z.union([z.string().regex(/^\d+$/), z.number().int().positive()]),
+});
+
 export const checkoutSchema = z.object({
   cartId: z.string().uuid(),
   customerId: z.number().int().positive().optional(),

@@ -1,7 +1,19 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { createCatalogProduct } from "@/modules/catalog/service";
-import { createProductSchema } from "@/modules/catalog/validators";
+import { createCatalogProduct, listCatalogProductsForAdmin } from "@/modules/catalog/service";
+import { adminProductsListQuerySchema, createProductSchema } from "@/modules/catalog/validators";
+
+export async function GET(request: Request) {
+  try {
+    const url = new URL(request.url);
+    const query = Object.fromEntries(url.searchParams.entries());
+    const input = parseOrThrow(adminProductsListQuerySchema, query);
+    const data = await listCatalogProductsForAdmin(input);
+    return jsonOk({ data });
+  } catch (error) {
+    return handleRouteError(error, request);
+  }
+}
 
 export async function POST(request: Request) {
   try {

@@ -1,8 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
+import { useEffect, useMemo, useState } from "react";
+
+import { OrderTimeline } from "@/components/store/OrderTimeline";
+import { Price } from "@/components/store/Price";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 type OrderResponse = {
   data: {
@@ -31,18 +36,18 @@ type OrderResponse = {
       shippedAt: string | null;
       deliveredAt: string | null;
     } | null;
-    timeline: Array<{
-      status: "PAID" | "PACKING" | "SHIPPED" | "DELIVERED";
-      reached: boolean;
-    }>;
+    payment: {
+      provider: string;
+      status: string;
+      amount: string;
+      providerRef: string | null;
+      updatedAt: string;
+    } | null;
   };
 };
 
 function formatRemaining(ms: number) {
-  if (ms <= 0) {
-    return "00:00";
-  }
-
+  if (ms <= 0) return "00:00";
   const minutes = Math.floor(ms / 1000 / 60);
   const seconds = Math.floor((ms / 1000) % 60);
   return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
@@ -52,129 +57,157 @@ export default function OrderPage() {
   const params = useParams<{ orderNumber: string }>();
   const orderNumber = params.orderNumber;
   const [order, setOrder] = useState<OrderResponse["data"] | null>(null);
-  const [now, setNow] = useState(Date.now());
-  const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
+  const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
-    const timer = setInterval(() => setNow(Date.now()), 1000);
-    return () => clearInterval(timer);
+    const timer = window.setInterval(() => setNow(Date.now()), 1000);
+    return () => window.clearInterval(timer);
   }, []);
 
   useEffect(() => {
-    async function loadOrder() {
+    if (!orderNumber) return;
+    let cancelled = false;
+    async function load() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch(`/api/store/orders/${orderNumber}`);
-        const payload = (await response.json()) as
-          | OrderResponse
-          | { error: { message: string } };
-
-        if (!response.ok) {
-          const message = "error" in payload ? payload.error.message : "Order not found.";
-          throw new Error(message);
+        const response = await fetch(`/api/store/orders/${orderNumber}`, { cache: "no-store" });
+        const payload = (await response.json()) as OrderResponse | { error?: { message?: string } };
+        if (!response.ok || !("data" in payload)) {
+          throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar la orden.");
         }
-
-        if (!("data" in payload)) {
-          throw new Error("Order not found.");
-        }
-
-        setOrder(payload.data);
-      } catch (loadError) {
-        setError(loadError instanceof Error ? loadError.message : "Order not found.");
+        if (!cancelled) setOrder(payload.data);
+      } catch (e) {
+        if (!cancelled) setError(e instanceof Error ? e.message : "No fue posible cargar la orden.");
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     }
-
-    if (orderNumber) {
-      void loadOrder();
-    }
+    void load();
+    return () => {
+      cancelled = true;
+    };
   }, [orderNumber]);
 
   const nextExpiry = useMemo(() => {
-    if (!order) {
-      return null;
-    }
-
-    const activeReservations = order.reservations.filter((reservation) => reservation.status === "ACTIVE");
-    if (activeReservations.length === 0) {
-      return null;
-    }
-
-    const first = [...activeReservations].sort(
-      (a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime(),
-    )[0];
-
-    return new Date(first.expiresAt).getTime();
+    if (!order) return null;
+    const active = order.reservations
+      .filter((reservation) => reservation.status === "ACTIVE")
+      .sort((a, b) => new Date(a.expiresAt).getTime() - new Date(b.expiresAt).getTime())[0];
+    return active ? new Date(active.expiresAt).getTime() : null;
   }, [order]);
 
-  const remainingText = nextExpiry ? formatRemaining(nextExpiry - now) : null;
-
   return (
-    <main className="mx-auto max-w-2xl px-6 py-10">
-      <h1 className="mb-2 text-3xl font-semibold">Order {orderNumber}</h1>
-      <div className="mb-3">
-        <Link className="rounded-md border px-3 py-2 text-sm" href={`/orders/${orderNumber}/receipt`}>
-          Ver recibo imprimible
-        </Link>
-      </div>
-      {loading && <p className="text-sm text-muted-foreground">Cargando orden...</p>}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-      {order && (
-        <div className="space-y-3 rounded-lg border p-4">
-          <p>
-            Estado: <strong>{order.status}</strong>
-          </p>
-          <p>
-            Total: <strong>{order.currency} {order.totals.total}</strong>
-          </p>
-          <p>
-            Reservas activas:{" "}
-            <strong>{order.reservations.filter((reservation) => reservation.status === "ACTIVE").length}</strong>
-          </p>
-          <p>
-            Expira en: <strong>{remainingText ?? "N/A"}</strong>
-          </p>
-          <div className="rounded-md border p-3">
-            <p className="mb-2 text-sm font-medium">Tracking</p>
-            <p className="text-sm">
-              Carrier: <strong>{order.shipment?.carrier ?? "N/A"}</strong>
-            </p>
-            <p className="text-sm">
-              Guia: <strong>{order.shipment?.trackingNumber ?? "N/A"}</strong>
-            </p>
-            {order.shipment?.trackingNumber && (
-              <button
-                className="mt-2 rounded-md border px-2 py-1 text-sm"
-                onClick={() => {
-                  void navigator.clipboard.writeText(order.shipment?.trackingNumber ?? "");
-                  setCopyMessage("Guia copiada.");
-                }}
-                type="button"
-              >
-                Copiar guia
-              </button>
-            )}
-            {copyMessage && <p className="mt-1 text-xs text-muted-foreground">{copyMessage}</p>}
+    <main className="space-y-6">
+      <section className="rounded-2xl border border-border/80 bg-card/70 p-5 shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Order</p>
+            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">{orderNumber}</h1>
+            {order ? (
+              <p className="mt-2 text-sm text-muted-foreground">
+                Estado actual: <span className="font-medium text-foreground">{order.status}</span>
+              </p>
+            ) : null}
           </div>
-          <div className="rounded-md border p-3">
-            <p className="mb-2 text-sm font-medium">Timeline</p>
-            <div className="flex flex-wrap gap-2">
-              {order.timeline.map((step) => (
-                <span
-                  key={step.status}
-                  className={`rounded-full border px-3 py-1 text-xs ${step.reached ? "bg-primary text-primary-foreground" : "text-muted-foreground"}`}
-                >
-                  {step.status}
-                </span>
-              ))}
-            </div>
+          <div className="flex items-center gap-2">
+            <Button asChild variant="outline">
+              <Link href={`/orders/${orderNumber}/receipt`}>Ver recibo</Link>
+            </Button>
+            <Button asChild>
+              <Link href="/store">Seguir comprando</Link>
+            </Button>
           </div>
         </div>
-      )}
+      </section>
+
+      {loading ? (
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <Skeleton className="h-60 rounded-2xl" />
+          <Skeleton className="h-60 rounded-2xl" />
+        </div>
+      ) : null}
+      {error ? <p className="rounded-xl border border-red-200 bg-red-50 p-3 text-sm text-red-700">{error}</p> : null}
+
+      {order ? (
+        <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <OrderTimeline currentStatus={order.status} />
+              {nextExpiry ? (
+                <p className="mt-4 text-sm text-muted-foreground">
+                  Reserva expira en <span className="font-medium text-foreground">{formatRemaining(nextExpiry - now)}</span>
+                </p>
+              ) : null}
+            </section>
+
+            <section className="rounded-2xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <h2 className="text-base font-semibold tracking-tight">Pago</h2>
+              {order.payment ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <p>
+                    Estado: <strong>{order.payment.status}</strong>
+                  </p>
+                  <p>
+                    Proveedor: <strong>{order.payment.provider}</strong>
+                  </p>
+                  <p>
+                    Monto: <strong><Price amount={order.payment.amount} currency={order.currency} /></strong>
+                  </p>
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">Aún sin registro de pago.</p>
+              )}
+            </section>
+          </div>
+
+          <div className="space-y-4">
+            <section className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm">
+              <h2 className="text-base font-semibold tracking-tight">Resumen del pedido</h2>
+              <div className="mt-4 space-y-2 text-sm">
+                <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><Price amount={order.totals.subtotal} currency={order.currency} /></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Descuento</span><Price amount={order.totals.discountTotal} currency={order.currency} /></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Envío</span><Price amount={order.totals.shippingTotal} currency={order.currency} /></div>
+                <div className="border-t border-border/60 pt-2">
+                  <div className="flex justify-between font-semibold"><span>Total</span><Price amount={order.totals.total} currency={order.currency} /></div>
+                </div>
+              </div>
+            </section>
+
+            <section className="rounded-2xl border border-border/80 bg-card/70 p-5 shadow-sm">
+              <h2 className="text-base font-semibold tracking-tight">Envío / tracking</h2>
+              {order.shipment ? (
+                <div className="mt-3 space-y-2 text-sm">
+                  <p>Estado: <strong>{order.shipment.status}</strong></p>
+                  <p>Carrier: <strong>{order.shipment.carrier ?? "N/A"}</strong></p>
+                  <p>Guía: <strong>{order.shipment.trackingNumber ?? "N/A"}</strong></p>
+                  {order.shipment.trackingNumber ? (
+                    <>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          void navigator.clipboard.writeText(order.shipment?.trackingNumber ?? "");
+                          setCopyMessage("Guía copiada.");
+                        }}
+                      >
+                        Copiar guía
+                      </Button>
+                      {copyMessage ? <p className="text-xs text-muted-foreground">{copyMessage}</p> : null}
+                    </>
+                  ) : null}
+                </div>
+              ) : (
+                <p className="mt-3 text-sm text-muted-foreground">Todavía no hay envío registrado.</p>
+              )}
+            </section>
+          </div>
+        </div>
+      ) : null}
     </main>
   );
 }

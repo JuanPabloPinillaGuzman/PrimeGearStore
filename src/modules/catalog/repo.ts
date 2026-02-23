@@ -4,18 +4,18 @@ import { prisma } from "@/lib/db/prisma";
 
 export async function findActiveProductsForCatalog(params: {
   search?: string;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sort?: "RELEVANCE" | "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "TOP_SELLERS";
   limit: number;
   offset: number;
 }) {
-  const conditions: Prisma.Sql[] = [Prisma.sql`p.is_active = true`];
-
-  if (params.search) {
-    const like = `%${params.search}%`;
-    conditions.push(Prisma.sql`(p.name ILIKE ${like} OR p.sku ILIKE ${like})`);
-  }
-
-  const whereSql = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
+  const like = params.search ? `%${params.search}%` : null;
+  const whereSql = buildCatalogWhereSql(params, like);
   const today = new Date().toISOString().slice(0, 10);
+  const orderBySql = buildCatalogOrderSql(params.sort, params.search);
 
   return prisma.$queryRaw<
     Array<{
@@ -32,6 +32,65 @@ export async function findActiveProductsForCatalog(params: {
       is_active: boolean;
     }>
   >(Prisma.sql`
+    WITH top_sellers_30 AS (
+      SELECT
+        si.product_id,
+        COALESCE(SUM(si.quantity), 0)::numeric AS qty_30d
+      FROM inventory.sale_items si
+      INNER JOIN inventory.sales s ON s.id = si.sale_id
+      WHERE s.sale_date >= (now() - interval '30 days')
+        AND s.status IN ('ISSUED', 'PAID')
+      GROUP BY si.product_id
+    ),
+    product_stock AS (
+      SELECT
+        x.product_id,
+        SUM(x.available_qty)::numeric AS available_qty
+      FROM (
+        SELECT
+          im.product_id,
+          COALESCE(SUM(
+            CASE
+              WHEN im.movement_type IN ('IN', 'RETURN_IN') THEN im.quantity
+              WHEN im.movement_type IN ('OUT', 'RETURN_OUT') THEN -im.quantity
+              ELSE 0
+            END
+          ), 0)::numeric
+          - COALESCE((
+            SELECT SUM(sr.quantity)
+            FROM webstore.stock_reservations sr
+            WHERE sr.product_id = im.product_id
+              AND sr.variant_id IS NULL
+              AND sr.status = 'ACTIVE'
+              AND sr.expires_at > now()
+          ), 0)::numeric AS available_qty
+        FROM inventory.inventory_movements im
+        GROUP BY im.product_id
+
+        UNION ALL
+
+        SELECT
+          pv.product_id,
+          COALESCE(SUM(
+            CASE
+              WHEN vim.movement_type IN ('IN', 'RETURN_IN') THEN vim.quantity
+              WHEN vim.movement_type IN ('OUT', 'RETURN_OUT') THEN -vim.quantity
+              ELSE 0
+            END
+          ), 0)::numeric
+          - COALESCE((
+            SELECT SUM(sr.quantity)
+            FROM webstore.stock_reservations sr
+            WHERE sr.variant_id = pv.id
+              AND sr.status = 'ACTIVE'
+              AND sr.expires_at > now()
+          ), 0)::numeric AS available_qty
+        FROM inventory.product_variants pv
+        LEFT JOIN inventory.variant_inventory_movements vim ON vim.variant_id = pv.id
+        GROUP BY pv.product_id, pv.id
+      ) x
+      GROUP BY x.product_id
+    )
     SELECT
       p.id,
       p.sku,
@@ -66,30 +125,153 @@ export async function findActiveProductsForCatalog(params: {
       ORDER BY wpi.created_at DESC, wpi.id DESC
       LIMIT 1
     ) pi ON TRUE
+    LEFT JOIN product_stock ps ON ps.product_id = p.id
+    LEFT JOIN top_sellers_30 ts ON ts.product_id = p.id
     ${whereSql}
-    ORDER BY p.created_at DESC
+    ${orderBySql}
     LIMIT ${params.limit}
     OFFSET ${params.offset}
   `);
 }
 
-export async function countActiveProductsForCatalog(search?: string) {
-  const conditions: Prisma.Sql[] = [Prisma.sql`is_active = true`];
-
-  if (search) {
-    const like = `%${search}%`;
-    conditions.push(Prisma.sql`(name ILIKE ${like} OR sku ILIKE ${like})`);
-  }
-
-  const whereSql = Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
+export async function countActiveProductsForCatalog(params: {
+  search?: string;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+}) {
+  const today = new Date().toISOString().slice(0, 10);
+  const like = params.search ? `%${params.search}%` : null;
+  const whereSql = buildCatalogWhereSql(params, like);
 
   const rows = await prisma.$queryRaw<Array<{ count: bigint }>>(Prisma.sql`
+    WITH product_stock AS (
+      SELECT
+        x.product_id,
+        SUM(x.available_qty)::numeric AS available_qty
+      FROM (
+        SELECT
+          im.product_id,
+          COALESCE(SUM(
+            CASE
+              WHEN im.movement_type IN ('IN', 'RETURN_IN') THEN im.quantity
+              WHEN im.movement_type IN ('OUT', 'RETURN_OUT') THEN -im.quantity
+              ELSE 0
+            END
+          ), 0)::numeric
+          - COALESCE((
+            SELECT SUM(sr.quantity)
+            FROM webstore.stock_reservations sr
+            WHERE sr.product_id = im.product_id
+              AND sr.variant_id IS NULL
+              AND sr.status = 'ACTIVE'
+              AND sr.expires_at > now()
+          ), 0)::numeric AS available_qty
+        FROM inventory.inventory_movements im
+        GROUP BY im.product_id
+
+        UNION ALL
+
+        SELECT
+          pv.product_id,
+          COALESCE(SUM(
+            CASE
+              WHEN vim.movement_type IN ('IN', 'RETURN_IN') THEN vim.quantity
+              WHEN vim.movement_type IN ('OUT', 'RETURN_OUT') THEN -vim.quantity
+              ELSE 0
+            END
+          ), 0)::numeric
+          - COALESCE((
+            SELECT SUM(sr.quantity)
+            FROM webstore.stock_reservations sr
+            WHERE sr.variant_id = pv.id
+              AND sr.status = 'ACTIVE'
+              AND sr.expires_at > now()
+          ), 0)::numeric AS available_qty
+        FROM inventory.product_variants pv
+        LEFT JOIN inventory.variant_inventory_movements vim ON vim.variant_id = pv.id
+        GROUP BY pv.product_id, pv.id
+      ) x
+      GROUP BY x.product_id
+    )
     SELECT COUNT(*)::bigint AS count
-    FROM inventory.products
+    FROM inventory.products p
+    LEFT JOIN LATERAL (
+      SELECT pp.sale_price, pp.currency
+      FROM inventory.product_prices pp
+      INNER JOIN inventory.price_lists pl ON pl.id = pp.price_list_id
+      WHERE pp.product_id = p.id
+        AND pl.is_default = true
+        AND pp.valid_from <= ${today}::date
+        AND (pp.valid_to IS NULL OR pp.valid_to >= ${today}::date)
+      ORDER BY pp.valid_from DESC
+      LIMIT 1
+    ) vp ON TRUE
+    LEFT JOIN product_stock ps ON ps.product_id = p.id
     ${whereSql}
   `);
 
   return Number(rows[0]?.count ?? 0);
+}
+
+function buildCatalogWhereSql(
+  params: {
+    search?: string;
+    categoryId?: number;
+    minPrice?: number;
+    maxPrice?: number;
+    inStock?: boolean;
+  },
+  like: string | null,
+) {
+  const conditions: Prisma.Sql[] = [Prisma.sql`p.is_active = true`];
+
+  if (like) {
+    conditions.push(Prisma.sql`(p.name ILIKE ${like} OR p.sku ILIKE ${like})`);
+  }
+  if (params.categoryId) {
+    conditions.push(Prisma.sql`p.category_id = ${params.categoryId}`);
+  }
+  if (typeof params.minPrice === "number") {
+    conditions.push(Prisma.sql`vp.sale_price IS NOT NULL AND vp.sale_price >= ${params.minPrice}`);
+  }
+  if (typeof params.maxPrice === "number") {
+    conditions.push(Prisma.sql`vp.sale_price IS NOT NULL AND vp.sale_price <= ${params.maxPrice}`);
+  }
+  if (params.inStock === true) {
+    conditions.push(Prisma.sql`COALESCE(ps.available_qty, 0) > 0`);
+  }
+
+  return Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
+}
+
+function buildCatalogOrderSql(
+  sort: "RELEVANCE" | "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "TOP_SELLERS" | undefined,
+  search?: string,
+) {
+  const like = search ? `%${search}%` : null;
+  switch (sort) {
+    case "PRICE_ASC":
+      return Prisma.sql`ORDER BY vp.sale_price ASC NULLS LAST, p.created_at DESC`;
+    case "PRICE_DESC":
+      return Prisma.sql`ORDER BY vp.sale_price DESC NULLS LAST, p.created_at DESC`;
+    case "TOP_SELLERS":
+      return Prisma.sql`ORDER BY COALESCE(ts.qty_30d, 0) DESC, p.created_at DESC`;
+    case "NEWEST":
+      return Prisma.sql`ORDER BY p.created_at DESC`;
+    case "RELEVANCE":
+    default:
+      if (search && like) {
+        return Prisma.sql`
+          ORDER BY
+            CASE WHEN p.name ILIKE ${like} THEN 0 ELSE 1 END ASC,
+            POSITION(lower(${search}) IN lower(COALESCE(p.name, ''))) ASC,
+            p.created_at DESC
+        `;
+      }
+      return Prisma.sql`ORDER BY p.created_at DESC`;
+  }
 }
 
 export async function findActiveProductByIdForStore(productId: number) {
@@ -216,6 +398,20 @@ export async function findProductBySlugForStore(slug: string) {
   return rows[0] ?? null;
 }
 
+export async function listProductImagesForStore(productId: number) {
+  return prisma.productImage.findMany({
+    where: { productId },
+    select: {
+      id: true,
+      url: true,
+      alt: true,
+      sortOrder: true,
+      isPrimary: true,
+    },
+    orderBy: [{ isPrimary: "desc" }, { sortOrder: "asc" }, { createdAt: "asc" }, { id: "asc" }],
+  });
+}
+
 export async function findActiveVariantsByProductIds(productIds: number[]) {
   if (productIds.length === 0) {
     return [];
@@ -335,6 +531,92 @@ export async function createProduct(data: {
   });
 }
 
+export async function listProductCategoryOptions() {
+  return prisma.category.findMany({
+    select: {
+      id: true,
+      name: true,
+    },
+    orderBy: {
+      name: "asc",
+    },
+  });
+}
+
+export async function bulkSetProductsActive(productIds: number[], isActive: boolean) {
+  const result = await prisma.product.updateMany({
+    where: { id: { in: productIds } },
+    data: { isActive },
+  });
+  return result.count;
+}
+
+export async function bulkSetProductsCategory(productIds: number[], categoryId: number | null) {
+  const result = await prisma.product.updateMany({
+    where: { id: { in: productIds } },
+    data: { categoryId },
+  });
+  return result.count;
+}
+
+export async function findCategoryById(categoryId: number) {
+  return prisma.category.findUnique({
+    where: { id: categoryId },
+    select: { id: true },
+  });
+}
+
+export async function listProductsForAdmin(params: {
+  search?: string;
+  limit: number;
+  offset: number;
+}) {
+  return prisma.product.findMany({
+    where: params.search
+      ? {
+          OR: [
+            { name: { contains: params.search, mode: "insensitive" } },
+            { sku: { contains: params.search, mode: "insensitive" } },
+            { slug: { contains: params.search, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+    select: {
+      id: true,
+      name: true,
+      sku: true,
+      slug: true,
+      isActive: true,
+      categoryId: true,
+      createdAt: true,
+      category: {
+        select: {
+          name: true,
+        },
+      },
+    },
+    orderBy: {
+      createdAt: "desc",
+    },
+    take: params.limit,
+    skip: params.offset,
+  });
+}
+
+export async function countProductsForAdmin(search?: string) {
+  return prisma.product.count({
+    where: search
+      ? {
+          OR: [
+            { name: { contains: search, mode: "insensitive" } },
+            { sku: { contains: search, mode: "insensitive" } },
+            { slug: { contains: search, mode: "insensitive" } },
+          ],
+        }
+      : undefined,
+  });
+}
+
 export async function findProductRecommendations(productId: number, limit = 8) {
   const today = new Date().toISOString().slice(0, 10);
   const rows = await prisma.$queryRaw<
@@ -409,4 +691,26 @@ export async function findProductRecommendations(productId: number, limit = 8) {
   `);
 
   return rows;
+}
+
+export async function listStoreCategoriesWithActiveProductCount(limit = 12) {
+  return prisma.$queryRaw<
+    Array<{
+      id: number;
+      name: string;
+      active_products_count: bigint;
+    }>
+  >(Prisma.sql`
+    SELECT
+      c.id,
+      c.name,
+      COUNT(p.id)::bigint AS active_products_count
+    FROM inventory.categories c
+    LEFT JOIN inventory.products p
+      ON p.category_id = c.id
+      AND p.is_active = true
+    GROUP BY c.id, c.name
+    ORDER BY COUNT(p.id) DESC, c.name ASC
+    LIMIT ${limit}
+  `);
 }

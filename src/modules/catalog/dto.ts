@@ -20,10 +20,17 @@ export type CatalogItemDto = {
 
 export type CatalogListQueryDto = {
   search?: string;
+  categoryId?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  inStock?: boolean;
+  sort?: CatalogSort;
   limit: number;
   offset: number;
   expandVariants?: boolean;
 };
+
+export type CatalogSort = "RELEVANCE" | "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "TOP_SELLERS";
 
 export type CatalogListOutputDto = {
   items: CatalogItemDto[];
@@ -31,6 +38,7 @@ export type CatalogListOutputDto = {
     limit: number;
     offset: number;
     count: number;
+    total: number;
   };
 };
 
@@ -51,6 +59,13 @@ export type ProductDetailDto = {
     url: string;
     alt: string | null;
   } | null;
+  images: Array<{
+    id: string;
+    url: string;
+    alt: string | null;
+    sortOrder: number;
+    isPrimary: boolean;
+  }>;
   isActive: boolean;
   variants: CatalogVariantDto[];
 };
@@ -101,4 +116,63 @@ export type CreateProductOutputDto = {
   sku: string | null;
   categoryId: number | null;
   isActive: boolean;
+};
+
+export type AdminProductsListQueryDto = {
+  search?: string;
+  limit: number;
+  offset: number;
+};
+
+export type AdminProductsListOutputDto = {
+  items: Array<{
+    id: number;
+    name: string;
+    sku: string | null;
+    slug: string | null;
+    isActive: boolean;
+    categoryId: number | null;
+    categoryName: string | null;
+    createdAt: string;
+  }>;
+  pagination: {
+    limit: number;
+    offset: number;
+    count: number;
+  };
+};
+
+export type StoreCategoryItemDto = {
+  id: number;
+  name: string;
+  activeProductsCount: number;
+};
+
+export type StoreCategoriesOutputDto = {
+  items: StoreCategoryItemDto[];
+};
+
+export type AdminProductCategoryOptionDto = {
+  id: number;
+  name: string;
+};
+
+export type AdminProductCategoryOptionsOutputDto = {
+  items: AdminProductCategoryOptionDto[];
+};
+
+export type AdminProductsBulkUpdateInputDto =
+  | {
+      productIds: number[];
+      action: "SET_ACTIVE";
+      isActive: boolean;
+    }
+  | {
+      productIds: number[];
+      action: "SET_CATEGORY";
+      categoryId: number | null;
+    };
+
+export type AdminProductsBulkUpdateOutputDto = {
+  updatedCount: number;
 };

@@ -53,6 +53,72 @@ export async function findOpenCartBySession(sessionId: string, db: DbClient = pr
   });
 }
 
+export async function findCartByIdForView(cartId: string, db: DbClient = prisma) {
+  return db.cart.findUnique({
+    where: { id: cartId },
+    select: {
+      id: true,
+      status: true,
+      appliedBundle: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+      items: {
+        orderBy: { createdAt: "desc" },
+        select: {
+          id: true,
+          productId: true,
+          variantId: true,
+          quantity: true,
+          unitPriceSnapshot: true,
+          currency: true,
+          product: {
+            select: {
+              name: true,
+            },
+          },
+          variant: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      },
+    },
+  });
+}
+
+export async function findCartItemById(itemId: bigint, db: DbClient = prisma) {
+  return db.cartItem.findUnique({
+    where: { id: itemId },
+    select: {
+      id: true,
+      cartId: true,
+    },
+  });
+}
+
+export async function updateCartItemQuantity(
+  itemId: bigint,
+  quantity: Prisma.Decimal,
+  db: DbClient = prisma,
+) {
+  return db.cartItem.update({
+    where: { id: itemId },
+    data: { quantity },
+    select: { id: true, cartId: true },
+  });
+}
+
+export async function deleteCartItemById(itemId: bigint, db: DbClient = prisma) {
+  return db.cartItem.delete({
+    where: { id: itemId },
+    select: { id: true, cartId: true },
+  });
+}
+
 export async function createOpenCart(sessionId?: string, db: DbClient = prisma) {
   return db.cart.create({
     data: {

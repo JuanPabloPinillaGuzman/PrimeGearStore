@@ -3,6 +3,11 @@ import { Prisma } from "@prisma/client";
 import { AppError } from "@/lib/errors/app-error";
 import { slugify } from "@/lib/text/slug";
 import type {
+  AdminProductCategoryOptionsOutputDto,
+  AdminProductsBulkUpdateInputDto,
+  AdminProductsBulkUpdateOutputDto,
+  AdminProductsListOutputDto,
+  AdminProductsListQueryDto,
   CatalogVariantDto,
   CatalogListOutputDto,
   CatalogListQueryDto,
@@ -11,10 +16,14 @@ import type {
   GenerateSlugsOutputDto,
   ProductDetailDto,
   ProductRecommendationDto,
+  StoreCategoriesOutputDto,
 } from "@/modules/catalog/dto";
 import {
+  bulkSetProductsActive,
+  bulkSetProductsCategory,
   countActiveProductsForCatalog,
   createProduct,
+  findCategoryById,
   findActiveProductByIdForStore,
   findActiveProductsForCatalog,
   findActiveVariantsByProductId,
@@ -23,8 +32,13 @@ import {
   existsProductSlug,
   listActiveProductIdsForSitemap,
   listProductsWithoutSlug,
+  listProductImagesForStore,
   updateProductSlug,
   findProductRecommendations,
+  listProductsForAdmin,
+  listProductCategoryOptions,
+  countProductsForAdmin,
+  listStoreCategoriesWithActiveProductCount,
 } from "@/modules/catalog/repo";
 import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/repo";
 
@@ -83,7 +97,7 @@ function mapVariantRowToDto(
 export async function getCatalogItems(query: CatalogListQueryDto): Promise<CatalogListOutputDto> {
   const [rows, total] = await Promise.all([
     findActiveProductsForCatalog(query),
-    countActiveProductsForCatalog(query.search),
+    countActiveProductsForCatalog(query),
   ]);
 
   const variantsByProduct = new Map<number, CatalogVariantDto[]>();
@@ -119,6 +133,7 @@ export async function getCatalogItems(query: CatalogListQueryDto): Promise<Catal
       limit: query.limit,
       offset: query.offset,
       count: total,
+      total,
     },
   };
 }
@@ -130,6 +145,7 @@ function mapRowToProductDetail(
     ...mapCatalogRowToItem(row),
     slug: row.slug,
     isActive: row.is_active,
+    images: [],
     variants: [],
   };
 }
@@ -158,6 +174,7 @@ export async function getCatalogProductDetailBySlugWithStock(
 
   const detail = mapRowToProductDetail(row);
   const variants = await findActiveVariantsByProductId(row.id);
+  const imageRows = await listProductImagesForStore(row.id);
   const variantIds = variants.map((variant) => variant.id);
   const [stockMap, reservedMap] = await Promise.all([
     getVariantStockOnHandMap(variantIds, { branchId: options?.branchId }),
@@ -165,6 +182,13 @@ export async function getCatalogProductDetailBySlugWithStock(
   ]);
   return {
     ...detail,
+    images: imageRows.map((image) => ({
+      id: image.id.toString(),
+      url: image.url,
+      alt: image.alt,
+      sortOrder: image.sortOrder,
+      isPrimary: image.isPrimary,
+    })),
     variants: variants.map((variant) => {
       const mapped = mapVariantRowToDto(variant);
       const stock = stockMap.get(variant.id.toString()) ?? new Prisma.Decimal(0);
@@ -188,6 +212,57 @@ export async function createCatalogProduct(input: CreateProductInputDto) {
   return createProduct(input);
 }
 
+export async function listCatalogProductsForAdmin(
+  query: AdminProductsListQueryDto,
+): Promise<AdminProductsListOutputDto> {
+  const [rows, count] = await Promise.all([
+    listProductsForAdmin(query),
+    countProductsForAdmin(query.search),
+  ]);
+
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      sku: row.sku,
+      slug: row.slug,
+      isActive: row.isActive,
+      categoryId: row.categoryId,
+      categoryName: row.category?.name ?? null,
+      createdAt: row.createdAt.toISOString(),
+    })),
+    pagination: {
+      limit: query.limit,
+      offset: query.offset,
+      count,
+    },
+  };
+}
+
+export async function listCatalogProductCategoryOptionsForAdmin(): Promise<AdminProductCategoryOptionsOutputDto> {
+  const rows = await listProductCategoryOptions();
+  return {
+    items: rows.map((row) => ({ id: row.id, name: row.name })),
+  };
+}
+
+export async function bulkUpdateCatalogProductsForAdmin(
+  input: AdminProductsBulkUpdateInputDto,
+): Promise<AdminProductsBulkUpdateOutputDto> {
+  if (input.action === "SET_ACTIVE") {
+    return { updatedCount: await bulkSetProductsActive(input.productIds, input.isActive) };
+  }
+
+  if (input.categoryId !== null) {
+    const category = await findCategoryById(input.categoryId);
+    if (!category) {
+      throw new AppError("BAD_REQUEST", 400, "Category not found.");
+    }
+  }
+
+  return { updatedCount: await bulkSetProductsCategory(input.productIds, input.categoryId) };
+}
+
 export async function getStoreRecommendations(productId: number): Promise<ProductRecommendationDto[]> {
   const rows = await findProductRecommendations(productId, 8);
   return rows.map((row) => ({
@@ -208,6 +283,17 @@ export async function getStoreRecommendations(productId: number): Promise<Produc
         }
       : null,
   }));
+}
+
+export async function getStoreCategories(): Promise<StoreCategoriesOutputDto> {
+  const rows = await listStoreCategoriesWithActiveProductCount(12);
+  return {
+    items: rows.map((row) => ({
+      id: row.id,
+      name: row.name,
+      activeProductsCount: Number(row.active_products_count),
+    })),
+  };
 }
 
 export async function generateProductSlugs(limit = 500): Promise<GenerateSlugsOutputDto> {

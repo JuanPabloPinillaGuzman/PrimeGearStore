@@ -1,6 +1,9 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 
 type VariantItem = {
   id: string;
@@ -26,6 +29,15 @@ export default function AdminVariantsPage() {
   const [variants, setVariants] = useState<VariantItem[]>([]);
   const [stockRows, setStockRows] = useState<VariantStockItem[]>([]);
   const [message, setMessage] = useState<string | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importing, setImporting] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [importResult, setImportResult] = useState<{
+    created: number;
+    updated: number;
+    failed: number;
+    errors: Array<{ row: number; message: string }>;
+  } | null>(null);
 
   const [newVariantName, setNewVariantName] = useState("");
   const [newVariantSku, setNewVariantSku] = useState("");
@@ -107,9 +119,46 @@ export default function AdminVariantsPage() {
     setStockRows(payload.data.items);
   }
 
+  async function importVariantsCsv() {
+    if (!importFile) return;
+    setImporting(true);
+    setMessage(null);
+    setImportResult(null);
+    try {
+      const form = new FormData();
+      form.append("file", importFile);
+      const response = await fetch("/api/admin/import/variants.csv", {
+        method: "POST",
+        body: form,
+      });
+      const payload = (await response.json()) as
+        | { data: { created: number; updated: number; failed: number; errors: Array<{ row: number; message: string }> } }
+        | { error?: { message?: string } };
+      if (!response.ok || !("data" in payload)) {
+        throw new Error(("error" in payload && payload.error?.message) || "No fue posible importar variantes.");
+      }
+      setImportResult(payload.data);
+      setMessage(`Importadas variantes: ${payload.data.created} creadas, ${payload.data.updated} actualizadas.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "No fue posible importar variantes.");
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="mb-6 text-3xl font-semibold">Admin: Variantes</h1>
+      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-3xl font-semibold">Admin: Variantes</h1>
+        <div className="flex gap-2">
+          <Button asChild variant="outline">
+            <Link href="/api/admin/exports/variants.csv">Export variants</Link>
+          </Button>
+          <Button variant="outline" onClick={() => setImportOpen(true)}>
+            Import variants
+          </Button>
+        </div>
+      </div>
       {message && <p className="mb-3 text-sm">{message}</p>}
 
       <section className="mb-6 rounded-lg border p-4">
@@ -188,7 +237,45 @@ export default function AdminVariantsPage() {
           {stockRows.length === 0 && <p className="text-sm text-muted-foreground">Sin datos de stock.</p>}
         </div>
       </section>
+
+      <Dialog open={importOpen} onOpenChange={setImportOpen}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Importar variantes CSV</DialogTitle>
+            <DialogDescription>
+              Headers requeridos: variantId,productId,sku,name,attributes_json,isActive
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <input type="file" accept=".csv,text/csv" onChange={(e) => setImportFile(e.target.files?.[0] ?? null)} />
+            <div className="flex gap-2">
+              <Button disabled={!importFile || importing} onClick={() => void importVariantsCsv()}>
+                {importing ? "Importando..." : "Procesar CSV"}
+              </Button>
+              <Button variant="outline" onClick={() => setImportOpen(false)}>
+                Cerrar
+              </Button>
+            </div>
+            {importResult ? (
+              <div className="space-y-2 rounded-md border p-3 text-sm">
+                <p>
+                  Creadas: <b>{importResult.created}</b> · Actualizadas: <b>{importResult.updated}</b> · Fallidas:{" "}
+                  <b>{importResult.failed}</b>
+                </p>
+                {importResult.errors.length > 0 ? (
+                  <div className="max-h-56 overflow-auto rounded-md border bg-muted/20 p-2 text-xs">
+                    {importResult.errors.slice(0, 50).map((rowError, index) => (
+                      <p key={`${rowError.row}-${index}`}>
+                        Fila {rowError.row}: {rowError.message}
+                      </p>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
+        </DialogContent>
+      </Dialog>
     </main>
   );
 }
-

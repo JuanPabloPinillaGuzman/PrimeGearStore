@@ -2,6 +2,17 @@
 
 import { FormEvent, useEffect, useState } from "react";
 
+import { AdminEmptyState } from "@/components/admin/AdminEmptyState";
+import { AdminStatusBadge } from "@/components/admin/AdminStatusBadge";
+import { AdminTableSkeleton } from "@/components/admin/AdminTableSkeleton";
+import { formatCop, formatDateTime } from "@/components/admin/format";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 type CouponItem = {
   id: string;
   code: string;
@@ -14,31 +25,36 @@ type CouponItem = {
   isActive: boolean;
 };
 
+type CouponRedemption = { id: string; orderNumber: string; redeemedAt: string };
+
 export default function AdminCouponsPage() {
   const [items, setItems] = useState<CouponItem[]>([]);
+  const [redemptions, setRedemptions] = useState<CouponRedemption[]>([]);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [lookupCode, setLookupCode] = useState("");
-  const [redemptions, setRedemptions] = useState<Array<{ id: string; orderNumber: string; redeemedAt: string }>>([]);
 
   const [code, setCode] = useState("");
   const [type, setType] = useState<"PERCENT" | "FIXED">("PERCENT");
   const [value, setValue] = useState("");
   const [minSubtotal, setMinSubtotal] = useState("");
+  const [creating, setCreating] = useState(false);
 
   async function loadCoupons() {
     setLoading(true);
+    setError(null);
     try {
       const response = await fetch("/api/admin/coupons");
       const payload = (await response.json()) as
         | { data: { items: CouponItem[] } }
-        | { error: { message: string } };
+        | { error?: { message?: string } };
       if (!response.ok || !("data" in payload)) {
-        throw new Error("error" in payload ? payload.error.message : "No fue posible cargar cupones.");
+        throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar cupones.");
       }
       setItems(payload.data.items);
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No fue posible cargar cupones.");
+    } catch (loadError) {
+      setError(loadError instanceof Error ? loadError.message : "No fue posible cargar cupones.");
     } finally {
       setLoading(false);
     }
@@ -50,124 +66,226 @@ export default function AdminCouponsPage() {
 
   async function createCoupon(event: FormEvent) {
     event.preventDefault();
+    setCreating(true);
     setMessage(null);
-    const response = await fetch("/api/admin/coupons", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        code,
-        type,
-        value: Number(value),
-        minSubtotal: minSubtotal ? Number(minSubtotal) : 0,
-        currency: "COP",
-      }),
-    });
-    const payload = (await response.json()) as
-      | { data: { code: string } }
-      | { error: { message: string } };
-    if (!response.ok || !("data" in payload)) {
-      setMessage("error" in payload ? payload.error.message : "No fue posible crear cupon.");
-      return;
+    setError(null);
+    try {
+      const response = await fetch("/api/admin/coupons", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          code,
+          type,
+          value: Number(value),
+          minSubtotal: minSubtotal ? Number(minSubtotal) : 0,
+          currency: "COP",
+        }),
+      });
+      const payload = (await response.json()) as
+        | { data: { code: string } }
+        | { error?: { message?: string } };
+      if (!response.ok || !("data" in payload)) {
+        throw new Error(("error" in payload && payload.error?.message) || "No fue posible crear el cupón.");
+      }
+      setMessage(`Cupón ${payload.data.code} creado.`);
+      setCode("");
+      setValue("");
+      setMinSubtotal("");
+      await loadCoupons();
+    } catch (createError) {
+      setError(createError instanceof Error ? createError.message : "No fue posible crear el cupón.");
+    } finally {
+      setCreating(false);
     }
-    setMessage(`Cupon ${payload.data.code} creado.`);
-    setCode("");
-    setValue("");
-    setMinSubtotal("");
-    await loadCoupons();
   }
 
   async function toggleCoupon(item: CouponItem) {
-    const response = await fetch(`/api/admin/coupons/${encodeURIComponent(item.code)}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ isActive: !item.isActive }),
-    });
-    const payload = (await response.json()) as
-      | { data: { code: string } }
-      | { error: { message: string } };
-    if (!response.ok || !("data" in payload)) {
-      setMessage("error" in payload ? payload.error.message : "No fue posible actualizar.");
-      return;
+    setMessage(null);
+    setError(null);
+    try {
+      const response = await fetch(`/api/admin/coupons/${encodeURIComponent(item.code)}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: !item.isActive }),
+      });
+      const payload = (await response.json()) as
+        | { data: { code: string } }
+        | { error?: { message?: string } };
+      if (!response.ok || !("data" in payload)) {
+        throw new Error(("error" in payload && payload.error?.message) || "No fue posible actualizar.");
+      }
+      setMessage(`Cupón ${payload.data.code} actualizado.`);
+      await loadCoupons();
+    } catch (toggleError) {
+      setError(toggleError instanceof Error ? toggleError.message : "No fue posible actualizar.");
     }
-    setMessage(`Cupon ${item.code} actualizado.`);
-    await loadCoupons();
   }
 
-  async function lookupRedemptions() {
+  async function lookupCouponRedemptions() {
     setMessage(null);
-    const response = await fetch(
-      `/api/admin/coupons/${encodeURIComponent(lookupCode)}/redemptions`,
-    );
-    const payload = (await response.json()) as
-      | { data: { items: Array<{ id: string; orderNumber: string; redeemedAt: string }> } }
-      | { error: { message: string } };
-    if (!response.ok || !("data" in payload)) {
-      setMessage("error" in payload ? payload.error.message : "No fue posible consultar redenciones.");
-      return;
+    setError(null);
+    try {
+      if (!lookupCode.trim()) {
+        setRedemptions([]);
+        return;
+      }
+      const response = await fetch(`/api/admin/coupons/${encodeURIComponent(lookupCode)}/redemptions`);
+      const payload = (await response.json()) as
+        | { data: { items: CouponRedemption[] } }
+        | { error?: { message?: string } };
+      if (!response.ok || !("data" in payload)) {
+        throw new Error(("error" in payload && payload.error?.message) || "No fue posible consultar redenciones.");
+      }
+      setRedemptions(payload.data.items);
+    } catch (lookupError) {
+      setError(lookupError instanceof Error ? lookupError.message : "No fue posible consultar redenciones.");
     }
-    setRedemptions(payload.data.items);
   }
 
   return (
-    <main className="mx-auto max-w-6xl px-6 py-10">
-      <h1 className="mb-6 text-3xl font-semibold">Admin: Cupones</h1>
-      {message && <p className="mb-3 text-sm">{message}</p>}
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle>Crear cupón</CardTitle>
+          <CardDescription>Promociones manuales por porcentaje o monto fijo.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form className="grid gap-3 md:grid-cols-5" onSubmit={createCoupon}>
+            <Input placeholder="WELCOME10" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required />
+            <Select value={type} onChange={(e) => setType(e.target.value as "PERCENT" | "FIXED")}>
+              <option value="PERCENT">PERCENT</option>
+              <option value="FIXED">FIXED</option>
+            </Select>
+            <Input type="number" step="0.01" placeholder="Valor" value={value} onChange={(e) => setValue(e.target.value)} required />
+            <Input
+              type="number"
+              step="0.01"
+              placeholder="Min subtotal"
+              value={minSubtotal}
+              onChange={(e) => setMinSubtotal(e.target.value)}
+            />
+            <Button disabled={creating} type="submit">
+              {creating ? "Creando..." : "Crear"}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
-      <section className="mb-6 rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Crear cupon</h2>
-        <form className="grid gap-3 md:grid-cols-4" onSubmit={createCoupon}>
-          <input className="rounded-md border px-3 py-2" placeholder="CODE10" value={code} onChange={(e) => setCode(e.target.value.toUpperCase())} required />
-          <select className="rounded-md border px-3 py-2" value={type} onChange={(e) => setType(e.target.value as "PERCENT" | "FIXED")}>
-            <option value="PERCENT">PERCENT</option>
-            <option value="FIXED">FIXED</option>
-          </select>
-          <input className="rounded-md border px-3 py-2" type="number" step="0.01" placeholder="10" value={value} onChange={(e) => setValue(e.target.value)} required />
-          <input className="rounded-md border px-3 py-2" type="number" step="0.01" placeholder="Min subtotal" value={minSubtotal} onChange={(e) => setMinSubtotal(e.target.value)} />
-          <button className="rounded-md bg-primary px-4 py-2 text-primary-foreground md:col-span-4" type="submit">
-            Crear
-          </button>
-        </form>
-      </section>
-
-      <section className="mb-6 rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Consultar redenciones</h2>
-        <div className="flex gap-2">
-          <input className="w-full max-w-xs rounded-md border px-3 py-2" placeholder="Coupon code" value={lookupCode} onChange={(e) => setLookupCode(e.target.value.toUpperCase())} />
-          <button className="rounded-md border px-4 py-2" type="button" onClick={() => void lookupRedemptions()}>
-            Ver redenciones
-          </button>
-        </div>
-        <div className="mt-3 space-y-1">
-          {redemptions.map((r) => (
-            <p key={r.id} className="text-sm">
-              {r.orderNumber} | {new Date(r.redeemedAt).toLocaleString()}
-            </p>
-          ))}
-          {lookupCode && redemptions.length === 0 && <p className="text-sm text-muted-foreground">Sin redenciones.</p>}
-        </div>
-      </section>
-
-      <section className="rounded-lg border p-4">
-        <h2 className="mb-3 text-lg font-medium">Cupones</h2>
-        {loading && <p className="text-sm text-muted-foreground">Cargando...</p>}
-        <div className="space-y-2">
-          {items.map((item) => (
-            <div key={item.id} className="flex flex-wrap items-center justify-between gap-2 rounded-md border p-3 text-sm">
-              <div>
-                <p className="font-medium">{item.code}</p>
-                <p className="text-muted-foreground">
-                  {item.type} {item.value} {item.type === "FIXED" ? item.currency : "%"} | min {item.minSubtotal} | redenciones {item.redeemedCount}/{item.maxRedemptions ?? "∞"}
-                </p>
-              </div>
-              <button className="rounded-md border px-3 py-2" type="button" onClick={() => void toggleCoupon(item)}>
-                {item.isActive ? "Desactivar" : "Activar"}
-              </button>
+      <Card>
+        <CardHeader>
+          <CardTitle>Redenciones</CardTitle>
+          <CardDescription>Consulta rápida por código de cupón.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            <Input
+              className="max-w-xs"
+              placeholder="Código"
+              value={lookupCode}
+              onChange={(e) => setLookupCode(e.target.value.toUpperCase())}
+            />
+            <Button type="button" variant="outline" onClick={() => void lookupCouponRedemptions()}>
+              Ver redenciones
+            </Button>
+          </div>
+          <div className="rounded-xl border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order</TableHead>
+                    <TableHead>Fecha</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {redemptions.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={2} className="text-muted-foreground">
+                        {lookupCode ? "Sin redenciones." : "Ingresa un código para consultar."}
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    redemptions.map((redemption) => (
+                      <TableRow key={redemption.id}>
+                        <TableCell>{redemption.orderNumber}</TableCell>
+                        <TableCell>{formatDateTime(redemption.redeemedAt)}</TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
             </div>
-          ))}
-          {items.length === 0 && <p className="text-sm text-muted-foreground">Sin cupones.</p>}
-        </div>
-      </section>
-    </main>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Listado de cupones</CardTitle>
+          <CardDescription>Activar/desactivar y revisar rendimiento rápido.</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {message && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</div>}
+          {error && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+
+          <div className="overflow-hidden rounded-xl border">
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Código</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Mínimo</TableHead>
+                    <TableHead>Redenciones</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={7} className="p-0">
+                        <AdminTableSkeleton rows={5} columns={7} />
+                      </TableCell>
+                    </TableRow>
+                  ) : items.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={7}>
+                        <AdminEmptyState title="Sin cupones" description="Crea el primer cupón para empezar." />
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    items.map((item) => (
+                      <TableRow key={item.id}>
+                        <TableCell className="font-medium">{item.code}</TableCell>
+                        <TableCell>{item.type}</TableCell>
+                        <TableCell>
+                          {item.type === "FIXED" ? formatCop(item.value) : `${item.value}%`}
+                        </TableCell>
+                        <TableCell>{formatCop(item.minSubtotal)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">
+                            {item.redeemedCount}/{item.maxRedemptions ?? "∞"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <AdminStatusBadge status={item.isActive ? "ACTIVE" : "INACTIVE"} />
+                        </TableCell>
+                        <TableCell>
+                          <Button size="sm" variant="outline" onClick={() => void toggleCoupon(item)} type="button">
+                            {item.isActive ? "Desactivar" : "Activar"}
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
 }
-

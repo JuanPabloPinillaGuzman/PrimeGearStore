@@ -17,6 +17,46 @@ export type AddCartItemOutputDto = {
   };
 };
 
+export type GetCartQueryDto = {
+  cartId: string;
+};
+
+export type GetCartOutputDto = {
+  cartId: string;
+  status: string;
+  items: Array<{
+    id: string;
+    productId: number;
+    productName: string;
+    variantId: string | null;
+    variantName: string | null;
+    quantity: string;
+    unitPriceSnapshot: string;
+    lineTotal: string;
+    currency: string;
+  }>;
+  totals: {
+    subtotal: string;
+    currency: string;
+    itemsCount: number;
+  };
+  appliedBundle: {
+    bundleId: string;
+    name: string;
+  } | null;
+};
+
+export type UpdateCartItemInputDto = {
+  cartId: string;
+  itemId: string;
+  quantity: number;
+};
+
+export type RemoveCartItemInputDto = {
+  cartId: string;
+  itemId: string;
+};
+
 export type CheckoutInputDto = {
   cartId: string;
   customerId?: number;

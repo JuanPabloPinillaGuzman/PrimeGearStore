@@ -1,4 +1,10 @@
-import { queryOrdersCsv, querySalesCsv, queryStockCsv } from "@/modules/backoffice/exports/repo";
+import {
+  queryOrdersCsv,
+  queryProductsCsv,
+  querySalesCsv,
+  queryStockCsv,
+  queryVariantsCsv,
+} from "@/modules/backoffice/exports/repo";
 
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return "";
@@ -77,3 +83,32 @@ export async function exportStockCsv(params: { branchId?: number }) {
   );
 }
 
+export async function exportProductsCsv() {
+  const rows = await queryProductsCsv();
+  return buildCsv(
+    ["productId", "sku", "name", "categoryId", "isActive", "slug"],
+    rows.map((row) => [
+      row.id,
+      row.sku,
+      row.name,
+      row.categoryId,
+      row.isActive,
+      row.slug,
+    ]),
+  );
+}
+
+export async function exportVariantsCsv() {
+  const rows = await queryVariantsCsv();
+  return buildCsv(
+    ["variantId", "productId", "sku", "name", "attributes_json", "isActive"],
+    rows.map((row) => [
+      row.id.toString(),
+      row.productId,
+      row.sku,
+      row.name,
+      JSON.stringify(row.attributes ?? {}),
+      row.isActive,
+    ]),
+  );
+}

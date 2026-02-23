@@ -34,7 +34,10 @@ export default auth(async (request: AuthenticatedRequest) => {
   const role = request.auth?.user?.role;
   const isAuthenticated = !!request.auth?.user;
 
-  if (pathname.startsWith("/api/store/")) {
+  if (
+    pathname.startsWith("/api/store/") &&
+    !(pathname === "/api/store/me" || pathname.startsWith("/api/store/me/"))
+  ) {
     // Simple edge-safe rate limiting for public store APIs. In prod, switch provider to Redis.
     const decision = await consumeRateLimit({ pathname, headers: request.headers });
     if (decision && !decision.allowed) {

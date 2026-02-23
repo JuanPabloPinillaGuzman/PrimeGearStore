@@ -15,12 +15,32 @@ export async function GET(request: Request) {
       .filter(Boolean);
     const data = await getCatalogItems({
       search: rawQuery.search,
+      categoryId: rawQuery.categoryId,
+      minPrice: rawQuery.minPrice,
+      maxPrice: rawQuery.maxPrice,
+      inStock:
+        rawQuery.inStock === true ||
+        rawQuery.inStock === "1" ||
+        rawQuery.inStock === "true"
+          ? true
+          : rawQuery.inStock === false || rawQuery.inStock === "0" || rawQuery.inStock === "false"
+            ? false
+            : undefined,
+      sort: rawQuery.sort,
       limit: rawQuery.limit,
       offset: rawQuery.offset,
       expandVariants: expandTokens.includes("variants"),
     });
 
-    const body = { data };
+    const body = {
+      data: data.items,
+      meta: {
+        total: data.pagination.total,
+        limit: data.pagination.limit,
+        offset: data.pagination.offset,
+      },
+      pagination: data.pagination,
+    };
     const serialized = JSON.stringify(body);
     const etag = `"${createHash("sha1").update(serialized).digest("hex")}"`;
     if (request.headers.get("if-none-match") === etag) {

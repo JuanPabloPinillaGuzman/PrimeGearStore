@@ -103,3 +103,30 @@ export async function queryStockCsv(branchId?: number) {
   `);
 }
 
+export async function queryProductsCsv() {
+  return prisma.product.findMany({
+    select: {
+      id: true,
+      sku: true,
+      name: true,
+      categoryId: true,
+      isActive: true,
+      slug: true,
+    },
+    orderBy: { id: "asc" },
+  });
+}
+
+export async function queryVariantsCsv() {
+  return prisma.productVariant.findMany({
+    select: {
+      id: true,
+      productId: true,
+      sku: true,
+      name: true,
+      attributes: true,
+      isActive: true,
+    },
+    orderBy: { id: "asc" },
+  });
+}
