@@ -14,6 +14,68 @@ function envOrThrow(name: string) {
   return value;
 }
 
+function parseHttpsPublicBaseUrl(): string {
+  const baseUrl = process.env.PUBLIC_BASE_URL;
+  const vercelEnv = (process.env.VERCEL_ENV ?? "").toLowerCase();
+  const isPreview = vercelEnv === "preview";
+  const isProduction = vercelEnv === "production" || process.env.NODE_ENV === "production";
+
+  if (!baseUrl) {
+    if (isPreview) {
+      throw new AppError(
+        "BAD_REQUEST",
+        400,
+        "Mercado Pago init is disabled in preview until PUBLIC_BASE_URL is configured with https.",
+      );
+    }
+    if (isProduction) {
+      throw new AppError(
+        "INTERNAL_ERROR",
+        500,
+        "PUBLIC_BASE_URL must be configured with a valid https URL in production.",
+      );
+    }
+    throw new AppError("INTERNAL_ERROR", 500, "PUBLIC_BASE_URL is not configured.");
+  }
+
+  let parsed: URL;
+  try {
+    parsed = new URL(baseUrl);
+  } catch {
+    if (isPreview) {
+      throw new AppError(
+        "BAD_REQUEST",
+        400,
+        "Mercado Pago init is disabled in preview until PUBLIC_BASE_URL is a valid https URL.",
+      );
+    }
+    throw new AppError(
+      isProduction ? "INTERNAL_ERROR" : "BAD_REQUEST",
+      isProduction ? 500 : 400,
+      "PUBLIC_BASE_URL must be a valid URL.",
+    );
+  }
+
+  if (parsed.protocol !== "https:") {
+    if (isPreview) {
+      throw new AppError(
+        "BAD_REQUEST",
+        400,
+        "Mercado Pago init is disabled in preview until PUBLIC_BASE_URL uses https.",
+      );
+    }
+    if (isProduction) {
+      throw new AppError(
+        "INTERNAL_ERROR",
+        500,
+        "PUBLIC_BASE_URL must use https in production.",
+      );
+    }
+  }
+
+  return baseUrl.replace(/\/$/, "");
+}
+
 async function mpFetch<T>(path: string): Promise<T> {
   const token = envOrThrow("MERCADOPAGO_ACCESS_TOKEN");
   const response = await fetch(`https://api.mercadopago.com${path}`, {
@@ -37,7 +99,7 @@ export async function createMercadoPagoPreference(input: {
   items: PreferenceItem[];
 }) {
   const token = envOrThrow("MERCADOPAGO_ACCESS_TOKEN");
-  const baseUrl = envOrThrow("PUBLIC_BASE_URL");
+  const baseUrl = parseHttpsPublicBaseUrl();
 
   const body = {
     external_reference: input.orderNumber,

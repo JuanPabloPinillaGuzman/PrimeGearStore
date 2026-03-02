@@ -774,6 +774,7 @@ npm run prisma:generate
 - `PATCH /api/admin/variants/[variantId]`
 - `POST /api/admin/variants/[variantId]/prices`
 - `GET /api/admin/variants/stock?branchId=&search=&limit=&offset=`
+- `GET /api/admin/runtime-info`
 
 ### UI m�nima Sprint 12
 - Store product detail (`/products/[slug]`): selector de variante + precio + stock/sin stock.
@@ -1326,6 +1327,42 @@ DATABASE_URL_PSQL="postgresql://postgres.<PROJECT_REF>:<PASSWORD>@aws-1-us-east-
 ```
 
 `db:check` usa `DATABASE_URL_PSQL` si existe; si no, cae a `DATABASE_URL` y parsea host/user/db/password para `psql`.
+
+### Preview vs Production (guardrails)
+- `VERCEL_ENV=production`:
+  - `PUBLIC_BASE_URL` debe ser URL `https` valida.
+  - `POST /api/store/payments/mercadopago/init` falla con error de configuracion si no cumple.
+- `VERCEL_ENV=preview`:
+  - `POST /api/store/payments/mercadopago/init` solo se permite con `PUBLIC_BASE_URL` configurado y `https`.
+  - si falta o es invalido, responde error amigable para evitar preferences con `back_urls` invalidas.
+- Recomendacion:
+  - usa URL de dominio real en Production
+  - en Preview, evitar iniciar pagos reales de Mercado Pago si no tienes dominio HTTPS estable.
+
+### Runtime config check (ADMIN)
+Endpoint de verificacion post-deploy:
+
+```bash
+curl -b cookie.txt "${PUBLIC_BASE_URL}/api/admin/runtime-info"
+```
+
+Retorna solo flags no sensibles:
+- `PUBLIC_BASE_URL` configurado/https
+- proveedor de email y flags de configuracion
+- host de DB (sin secreto) y si parece pooler
+- flags de Sentry y Mercado Pago
+
+### Release checklist (10 puntos)
+1. `DATABASE_URL` apunta a pooler Supabase correcto con `sslmode=require`.
+2. `PUBLIC_BASE_URL` en Production usa dominio HTTPS real.
+3. `AUTH_SECRET` fuerte y unico por entorno.
+4. `MERCADOPAGO_ACCESS_TOKEN` cargado (credenciales de entorno correcto).
+5. `MERCADOPAGO_WEBHOOK_SECRET` configurado y webhook activo.
+6. `EMAIL_PROVIDER` y `EMAIL_FROM` configurados (`RESEND_API_KEY` si aplica).
+7. `npm run db:check` en verde contra DB target.
+8. `npm run build` en verde en CI antes del deploy.
+9. Smoke post-deploy: `/api/health`, `/store`, flujo admin basico.
+10. Verificar monitoreo/error tracking (Sentry) y job `process-outbox`.
 
 ### Password rotation (Supabase DB)
 - Supabase -> `Project Settings` -> `Database` -> `Reset password`
