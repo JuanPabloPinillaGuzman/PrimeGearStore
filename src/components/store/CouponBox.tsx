@@ -4,6 +4,7 @@ import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
 
 type ValidateResponse = {
   data: {
@@ -28,29 +29,24 @@ export function CouponBox({
 
   async function validateCoupon() {
     if (!cartId || !couponCode.trim()) {
-      setMessage("Ingresa un cartId y un cupón.");
+      setMessage("Ingresa un cartId y un cupon.");
       return;
     }
     setLoading(true);
     setMessage(null);
     try {
-      const response = await fetch("/api/store/coupons/validate", {
+      const payload = await requestJson<ValidateResponse>("/api/store/coupons/validate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cartId, code: couponCode.trim() }),
       });
-      const payload = (await response.json()) as ValidateResponse | { error?: { message?: string } };
-      if (!response.ok || !("data" in payload)) {
-        const message = "error" in payload ? payload.error?.message : undefined;
-        throw new Error(message ?? "No fue posible validar cupón.");
-      }
       setMessage(
         payload.data.valid
-          ? `Cupón válido. Descuento ${payload.data.discountAmount}. Nuevo total ${payload.data.newTotal}.`
-          : `Cupón inválido: ${payload.data.reason ?? "No aplica"}.`,
+          ? `Cupon valido. Descuento ${payload.data.discountAmount}. Nuevo total ${payload.data.newTotal}.`
+          : `Cupon invalido: ${payload.data.reason ?? "No aplica"}.`,
       );
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No fue posible validar cupón.");
+      setMessage(getErrorMessage(error, "No fue posible validar cupon."));
     } finally {
       setLoading(false);
     }
@@ -58,13 +54,13 @@ export function CouponBox({
 
   return (
     <div className="rounded-2xl border border-border/70 bg-card/70 p-4">
-      <p className="text-sm font-medium">Cupón</p>
+      <p className="text-sm font-medium">Cupon</p>
       <div className="mt-3 flex gap-2">
         <Input
           placeholder="WELCOME10"
           value={couponCode}
           onChange={(e) => onChangeCouponCode(e.target.value.toUpperCase())}
-          aria-label="Código de cupón"
+          aria-label="Codigo de cupon"
         />
         <Button type="button" variant="outline" onClick={() => void validateCoupon()} disabled={loading}>
           {loading ? "..." : "Validar"}

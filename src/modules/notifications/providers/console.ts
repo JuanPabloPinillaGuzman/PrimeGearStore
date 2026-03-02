@@ -9,9 +9,9 @@ export class ConsoleEmailProvider implements EmailProvider {
         from: message.from,
         subject: message.subject,
         body: message.text,
+        html: message.html,
       },
       "Console email provider sent message.",
     );
   }
 }
-

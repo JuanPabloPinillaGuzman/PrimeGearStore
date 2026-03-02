@@ -47,6 +47,7 @@ function buildEmailContent(eventType: NotificationEventType, payload: Record<str
     return {
       subject: `PrimeGearStore: pedido ${orderNumber} creado`,
       text: `Tu pedido ${orderNumber} fue creado. Total: ${formatCurrency(currency, total)}.`,
+      html: `<h2>Pedido creado</h2><p>Tu pedido <strong>${orderNumber}</strong> fue creado.</p><p>Total: ${formatCurrency(currency, total)}</p>`,
     };
   }
 
@@ -54,6 +55,7 @@ function buildEmailContent(eventType: NotificationEventType, payload: Record<str
     return {
       subject: `PrimeGearStore: pago aprobado ${orderNumber}`,
       text: `Tu pago del pedido ${orderNumber} fue aprobado. Total: ${formatCurrency(currency, total)}.`,
+      html: `<h2>Pago aprobado</h2><p>Tu pedido <strong>${orderNumber}</strong> fue aprobado.</p><p>Total: ${formatCurrency(currency, total)}</p>`,
     };
   }
 
@@ -61,6 +63,7 @@ function buildEmailContent(eventType: NotificationEventType, payload: Record<str
     return {
       subject: `PrimeGearStore: pedido ${orderNumber} enviado`,
       text: `Tu pedido ${orderNumber} fue enviado.${carrier ? ` Transportadora: ${carrier}.` : ""}${trackingNumber ? ` Guia: ${trackingNumber}.` : ""}`,
+      html: `<h2>Pedido enviado</h2><p>Tu pedido <strong>${orderNumber}</strong> fue enviado.</p>${carrier ? `<p>Transportadora: ${carrier}</p>` : ""}${trackingNumber ? `<p>Guia: ${trackingNumber}</p>` : ""}`,
     };
   }
 
@@ -71,12 +74,16 @@ function buildEmailContent(eventType: NotificationEventType, payload: Record<str
       text: recoveryLink
         ? `Tu carrito sigue disponible. Recuperalo aqui: ${recoveryLink}`
         : "Tu carrito sigue disponible en PrimeGearStore.",
+      html: recoveryLink
+        ? `<h2>Tu carrito sigue disponible</h2><p><a href="${recoveryLink}">Recuperar carrito</a></p>`
+        : "<h2>Tu carrito sigue disponible en PrimeGearStore.</h2>",
     };
   }
 
   return {
     subject: `PrimeGearStore: pedido ${orderNumber} entregado`,
     text: `Tu pedido ${orderNumber} fue marcado como entregado.`,
+    html: `<h2>Pedido entregado</h2><p>Tu pedido <strong>${orderNumber}</strong> fue marcado como entregado.</p>`,
   };
 }
 
@@ -172,12 +179,13 @@ export async function processNotificationOutbox(limit: number): Promise<ProcessO
     try {
       const payload = (row.payload ?? {}) as Record<string, unknown>;
       const eventType = row.eventType as NotificationEventType;
-      const { subject, text } = buildEmailContent(eventType, payload);
+      const { subject, text, html } = buildEmailContent(eventType, payload);
       await provider.send({
         to: row.toAddress,
         from,
         subject,
         text,
+        html,
       });
       await markOutboxSent(row.id);
       sent += 1;

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 
 async function checkDb() {
-  const timeoutMs = 1000;
+  const timeoutMs = Number(process.env.HEALTH_DB_TIMEOUT_MS ?? 3000);
   const timeout = new Promise<never>((_, reject) => {
     setTimeout(() => reject(new Error("DB health timeout")), timeoutMs);
   });
@@ -29,4 +29,3 @@ export async function GET(request: Request) {
     return handleRouteError(error, request);
   }
 }
-

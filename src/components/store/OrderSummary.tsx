@@ -23,7 +23,10 @@ export function OrderSummary({
   onCheckout,
 }: Props) {
   return (
-    <aside className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm lg:sticky lg:top-24">
+    <aside
+      className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm lg:sticky lg:top-24"
+      data-testid="checkout-summary"
+    >
       <h2 className="text-base font-semibold tracking-tight">Resumen</h2>
       <div className="mt-4 space-y-3 text-sm">
         <div className="flex items-center justify-between">
@@ -46,7 +49,13 @@ export function OrderSummary({
         </div>
       </div>
       {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">{error}</p> : null}
-      <Button className="mt-4 w-full rounded-full" size="lg" onClick={onCheckout} disabled={loading}>
+      <Button
+        className="mt-4 w-full rounded-full"
+        size="lg"
+        onClick={onCheckout}
+        disabled={loading}
+        data-testid="checkout-continue-button"
+      >
         {loading ? "Redirigiendo..." : "Continuar al pago"}
       </Button>
     </aside>

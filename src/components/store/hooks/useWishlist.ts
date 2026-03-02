@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
+import { mergeWishlistProductIds } from "@/lib/store/wishlist-utils";
 
 const WISHLIST_KEY = "pg_wishlist";
 const WISHLIST_EVENT = "pg-wishlist-updated";
@@ -75,6 +77,8 @@ export function useWishlist() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [products, setProducts] = useState<WishlistProduct[] | null>(null);
   const [guestSlugs, setGuestSlugs] = useState<string[]>([]);
+  const [actionMessage, setActionMessage] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const syncGuest = useCallback(() => {
     setGuestSlugs(readLocalWishlist());
@@ -83,9 +87,8 @@ export function useWishlist() {
 
   const loadAuthStateAndWishlist = useCallback(async () => {
     try {
-      const meResponse = await fetch("/api/store/me", { cache: "no-store" });
-      const mePayload = (await meResponse.json()) as MeResponse | { error?: { message?: string } };
-      if (!meResponse.ok || !("data" in mePayload) || mePayload.data.role !== "CUSTOMER" || !mePayload.data.customer) {
+      const mePayload = await requestJson<MeResponse>("/api/store/me", { cache: "no-store" }).catch(() => null);
+      if (!mePayload || mePayload.data.role !== "CUSTOMER" || !mePayload.data.customer) {
         setIsAuthenticated(false);
         setProducts(null);
         syncGuest();
@@ -97,11 +100,12 @@ export function useWishlist() {
       const localSlugs = readLocalWishlist();
       if (localSlugs.length > 0) {
         const productIds = await resolveProductIdsFromLocalSlugs(localSlugs);
-        if (productIds.length > 0) {
-          await fetch("/api/store/me/wishlist/merge", {
+        const merged = mergeWishlistProductIds(productIds, []);
+        if (merged.length > 0) {
+          await requestJson<{ data: unknown }>("/api/store/me/wishlist/merge", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ productIds }),
+            body: JSON.stringify({ productIds: merged }),
           });
         }
         if (typeof window !== "undefined") {
@@ -111,13 +115,8 @@ export function useWishlist() {
         setGuestSlugs([]);
       }
 
-      const wishlistResponse = await fetch("/api/store/me/wishlist", { cache: "no-store" });
-      const wishlistPayload = (await wishlistResponse.json()) as WishlistApiResponse | { error?: { message?: string } };
-      if (!wishlistResponse.ok || !("data" in wishlistPayload)) {
-        setProducts([]);
-      } else {
-        setProducts(wishlistPayload.data.items);
-      }
+      const wishlistPayload = await requestJson<WishlistApiResponse>("/api/store/me/wishlist", { cache: "no-store" });
+      setProducts(wishlistPayload.data.items);
       setReady(true);
     } catch {
       setIsAuthenticated(false);
@@ -125,6 +124,15 @@ export function useWishlist() {
       syncGuest();
     }
   }, [syncGuest]);
+
+  useEffect(() => {
+    if (!actionMessage && !actionError) return;
+    const timer = window.setTimeout(() => {
+      setActionMessage(null);
+      setActionError(null);
+    }, 2200);
+    return () => window.clearTimeout(timer);
+  }, [actionError, actionMessage]);
 
   useEffect(() => {
     const initialTimer = window.setTimeout(() => {
@@ -145,33 +153,42 @@ export function useWishlist() {
   const toggle = useCallback(
     async (input: { slug?: string | null; productId?: number | null }) => {
       const { slug, productId } = input;
-      if (isAuthenticated) {
-        if (!productId) return false;
-        const response = await fetch("/api/store/me/wishlist/toggle", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId }),
-        });
-        const payload = (await response.json()) as { data?: { added?: boolean } };
-        if (!response.ok) {
-          throw new Error("No fue posible actualizar favoritos.");
+      try {
+        if (isAuthenticated) {
+          if (!productId) return false;
+          const payload = await requestJson<{ data?: { added?: boolean } }>("/api/store/me/wishlist/toggle", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ productId }),
+          });
+          await loadAuthStateAndWishlist();
+          const added = Boolean(payload.data?.added);
+          setActionMessage(added ? "Agregado a favoritos." : "Eliminado de favoritos.");
+          setActionError(null);
+          return added;
         }
-        await loadAuthStateAndWishlist();
-        return Boolean(payload.data?.added);
-      }
 
-      if (!slug) return false;
-      const current = readLocalWishlist();
-      if (current.includes(slug)) {
-        const next = current.filter((item) => item !== slug);
+        if (!slug) return false;
+        const current = readLocalWishlist();
+        if (current.includes(slug)) {
+          const next = current.filter((item) => item !== slug);
+          writeLocalWishlist(next);
+          setGuestSlugs(next);
+          setActionMessage("Eliminado de favoritos.");
+          setActionError(null);
+          return false;
+        }
+        const next = [...current, slug];
         writeLocalWishlist(next);
         setGuestSlugs(next);
-        return false;
+        setActionMessage("Agregado a favoritos.");
+        setActionError(null);
+        return true;
+      } catch (error) {
+        setActionMessage(null);
+        setActionError(getErrorMessage(error, "No fue posible actualizar favoritos."));
+        throw error;
       }
-      const next = [...current, slug];
-      writeLocalWishlist(next);
-      setGuestSlugs(next);
-      return true;
     },
     [isAuthenticated, loadAuthStateAndWishlist],
   );
@@ -203,6 +220,7 @@ export function useWishlist() {
     has,
     toggle,
     refresh: loadAuthStateAndWishlist,
+    actionMessage,
+    actionError,
   };
 }
-

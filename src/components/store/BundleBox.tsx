@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { Price } from "@/components/store/Price";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
 
 type BundleRow = {
   bundleId: string;
@@ -37,17 +38,16 @@ export function BundleBox({
       return;
     }
     let cancelled = false;
-    async function load() {
-      setLoading(true);
-      try {
-        const response = await fetch(`/api/store/bundles/applicable?cartId=${encodeURIComponent(cartId ?? "")}`, {
-          cache: "no-store",
-        });
-        const payload = (await response.json()) as ApplicableResponse | { error?: { message?: string } };
-        if (!response.ok || !("data" in payload)) {
-          throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar bundles.");
-        }
-        if (!cancelled) {
+    const timer = window.setTimeout(() => {
+      void (async () => {
+        setLoading(true);
+        setMessage(null);
+        try {
+          const payload = await requestJson<ApplicableResponse>(
+            `/api/store/bundles/applicable?cartId=${encodeURIComponent(cartId)}`,
+            { cache: "no-store" },
+          );
+          if (cancelled) return;
           setBundles(payload.data.bundles);
           if (appliedBundle) {
             const selected = payload.data.bundles.find((b) => b.bundleId === appliedBundle.bundleId);
@@ -55,16 +55,17 @@ export function BundleBox({
           } else {
             onEstimatedBundleDiscountChange?.("0");
           }
+        } catch (error) {
+          if (!cancelled) setMessage(getErrorMessage(error, "No fue posible cargar bundles."));
+        } finally {
+          if (!cancelled) setLoading(false);
         }
-      } catch (error) {
-        if (!cancelled) setMessage(error instanceof Error ? error.message : "No fue posible cargar bundles.");
-      } finally {
-        if (!cancelled) setLoading(false);
-      }
-    }
-    void load();
+      })();
+    }, 180);
+
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [appliedBundle, cartId, onEstimatedBundleDiscountChange]);
 
@@ -73,21 +74,17 @@ export function BundleBox({
     setApplyingId(bundleId);
     setMessage(null);
     try {
-      const response = await fetch("/api/store/bundles/apply", {
+      await requestJson<{ data?: unknown }>("/api/store/bundles/apply", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cartId, bundleId }),
       });
-      const payload = (await response.json()) as { data?: unknown; error?: { message?: string } };
-      if (!response.ok || !payload.data) {
-        throw new Error(payload.error?.message ?? "No fue posible aplicar bundle.");
-      }
       setMessage("Bundle aplicado.");
       const selected = bundles.find((b) => b.bundleId === bundleId);
       onEstimatedBundleDiscountChange?.(selected?.estimatedDiscount ?? "0");
       onBundleApplied();
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "No fue posible aplicar bundle.");
+      setMessage(getErrorMessage(error, "No fue posible aplicar bundle."));
     } finally {
       setApplyingId(null);
     }
@@ -120,7 +117,11 @@ export function BundleBox({
                 onClick={() => void applyBundle(bundle.bundleId)}
                 disabled={applyingId === bundle.bundleId || appliedBundle?.bundleId === bundle.bundleId}
               >
-                {appliedBundle?.bundleId === bundle.bundleId ? "Aplicado" : applyingId === bundle.bundleId ? "..." : "Aplicar"}
+                {appliedBundle?.bundleId === bundle.bundleId
+                  ? "Aplicado"
+                  : applyingId === bundle.bundleId
+                    ? "..."
+                    : "Aplicar"}
               </Button>
             </div>
           </div>

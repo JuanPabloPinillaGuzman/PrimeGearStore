@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 
 import { dispatchCartUpdated, useCart } from "@/components/store/useCart";
 import { Button } from "@/components/ui/button";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
 
 type Props = {
   productId: number;
@@ -18,7 +19,17 @@ type AddToCartResponse = {
   };
 };
 
-export function AddToCartButton({ productId, variantId, disabled, disabledReason }: Props) {
+type AddToCartButtonProps = Props & {
+  onAdded?: () => void;
+};
+
+export function AddToCartButton({
+  productId,
+  variantId,
+  disabled,
+  disabledReason,
+  onAdded,
+}: AddToCartButtonProps) {
   const { sessionId, setCartId } = useCart();
   const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState<{ type: "success" | "error"; message: string } | null>(null);
@@ -34,7 +45,7 @@ export function AddToCartButton({ productId, variantId, disabled, disabledReason
     setLoading(true);
     setToast(null);
     try {
-      const response = await fetch("/api/store/cart/items", {
+      const payload = await requestJson<AddToCartResponse>("/api/store/cart/items", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -44,18 +55,14 @@ export function AddToCartButton({ productId, variantId, disabled, disabledReason
           quantity: 1,
         }),
       });
-      const payload = (await response.json()) as AddToCartResponse | { error?: { message?: string } };
-      if (!response.ok || !("data" in payload)) {
-        const message = "error" in payload ? payload.error?.message : undefined;
-        throw new Error(message ?? "No fue posible agregar al carrito.");
-      }
       setCartId(payload.data.cartId);
       dispatchCartUpdated();
       setToast({ type: "success", message: "Agregado al carrito." });
+      onAdded?.();
     } catch (error) {
       setToast({
         type: "error",
-        message: error instanceof Error ? error.message : "No fue posible agregar al carrito.",
+        message: getErrorMessage(error, "No fue posible agregar al carrito."),
       });
     } finally {
       setLoading(false);
@@ -70,6 +77,7 @@ export function AddToCartButton({ productId, variantId, disabled, disabledReason
         onClick={() => void handleAdd()}
         disabled={disabled || loading || !sessionId}
         aria-disabled={disabled || loading || !sessionId}
+        data-testid="add-to-cart-button"
       >
         {loading ? "Agregando..." : "Agregar al carrito"}
       </Button>

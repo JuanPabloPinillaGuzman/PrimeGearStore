@@ -16,6 +16,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
+import { getCachedProductDetail, setCachedProductDetail } from "@/lib/store/product-detail-cache";
 
 type ProductDetailPayload = {
   data: {
@@ -69,17 +71,17 @@ export function QuickViewDialog({ slug, productName }: Props) {
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch(`/api/store/products/${encodeURIComponent(slug)}`, {
-        cache: "no-store",
-      });
-      const payload = (await response.json()) as ProductDetailPayload | { error?: { message?: string } };
-      if (!response.ok || !("data" in payload)) {
-        throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar el producto.");
-      }
+      const cached = getCachedProductDetail<ProductDetailPayload["data"]>(slug);
+      const payload = cached
+        ? ({ data: cached } as ProductDetailPayload)
+        : await requestJson<ProductDetailPayload>(`/api/store/products/${encodeURIComponent(slug)}`, {
+            cache: "no-store",
+          });
+      if (!cached) setCachedProductDetail(slug, payload.data);
       setProduct(payload.data);
       setSelectedVariantId(payload.data.variants[0]?.id ?? null);
     } catch (loadError) {
-      setError(loadError instanceof Error ? loadError.message : "No fue posible cargar el producto.");
+      setError(getErrorMessage(loadError, "No fue posible cargar el producto."));
       setProduct(null);
     } finally {
       setLoading(false);
@@ -120,6 +122,7 @@ export function QuickViewDialog({ slug, productName }: Props) {
         onClick={() => setOpen(true)}
         disabled={!slug}
         aria-label={`Vista rapida de ${productName}`}
+        data-testid={slug ? `quick-view-${slug}` : undefined}
       >
         Vista rapida
       </Button>
@@ -214,6 +217,7 @@ export function QuickViewDialog({ slug, productName }: Props) {
                     variantId={selectedVariant?.id ?? null}
                     disabled={!!disabledReason}
                     disabledReason={disabledReason}
+                    onAdded={() => setOpen(false)}
                   />
                 </div>
               ) : null}
@@ -224,4 +228,3 @@ export function QuickViewDialog({ slug, productName }: Props) {
     </>
   );
 }
-

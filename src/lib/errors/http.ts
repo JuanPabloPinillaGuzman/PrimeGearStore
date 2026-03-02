@@ -70,6 +70,6 @@ export function handleRouteError(error: unknown, request?: Request) {
     },
     "Unhandled route error.",
   );
-  captureServerError(error, { requestId });
+  void captureServerError(error, { requestId });
   return jsonError("INTERNAL_ERROR", "An unexpected error occurred.", 500, request);
 }

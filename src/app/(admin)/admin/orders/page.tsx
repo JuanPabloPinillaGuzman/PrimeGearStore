@@ -175,8 +175,16 @@ export default function AdminOrdersPage() {
             {activeFiltersCount > 0 && <Badge variant="secondary">{activeFiltersCount} filtros activos</Badge>}
           </div>
 
-          {message && <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">{message}</div>}
-          {error && <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{error}</div>}
+          {message && (
+            <div className="rounded-md border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" data-testid="admin-orders-message">
+              {message}
+            </div>
+          )}
+          {error && (
+            <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" data-testid="admin-orders-error">
+              {error}
+            </div>
+          )}
 
           <div className="overflow-hidden rounded-xl border bg-background">
             <div className="overflow-x-auto">
@@ -212,10 +220,12 @@ export default function AdminOrdersPage() {
                     </TableRow>
                   ) : (
                     items.map((item) => (
-                      <TableRow key={item.orderNumber}>
+                      <TableRow key={item.orderNumber} data-testid={`admin-order-row-${item.orderNumber}`}>
                         <TableCell className="font-medium">{item.orderNumber}</TableCell>
                         <TableCell>
-                          <AdminStatusBadge status={item.status} />
+                          <span data-testid={`admin-order-status-${item.orderNumber}`}>
+                            <AdminStatusBadge status={item.status} />
+                          </span>
                         </TableCell>
                         <TableCell>
                           <AdminStatusBadge status={item.paymentStatus} />
@@ -254,10 +264,11 @@ export default function AdminOrdersPage() {
                               <Button
                                 size="sm"
                                 disabled={busyOrder === item.orderNumber}
-                                onClick={() =>
+                              onClick={() =>
                                   void runOrderAction(item.orderNumber, { type: "status", status: "PACKING" })
                                 }
                                 type="button"
+                                data-testid={`admin-order-pack-${item.orderNumber}`}
                               >
                                 Marcar PACKING
                               </Button>
@@ -270,6 +281,7 @@ export default function AdminOrdersPage() {
                                   void runOrderAction(item.orderNumber, { type: "status", status: "SHIPPED" })
                                 }
                                 type="button"
+                                data-testid={`admin-order-ship-${item.orderNumber}`}
                               >
                                 Marcar SHIPPED
                               </Button>
@@ -282,6 +294,7 @@ export default function AdminOrdersPage() {
                                   void runOrderAction(item.orderNumber, { type: "status", status: "DELIVERED" })
                                 }
                                 type="button"
+                                data-testid={`admin-order-deliver-${item.orderNumber}`}
                               >
                                 Marcar DELIVERED
                               </Button>

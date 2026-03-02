@@ -15,6 +15,7 @@ import { FiltersPanel } from "@/components/store/filters/FiltersPanel";
 import { MobileFiltersSheet } from "@/components/store/filters/MobileFiltersSheet";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { parseCatalogFiltersFromSearchParams } from "@/lib/store/catalog-filters";
 
 type CatalogItem = {
   id: number;
@@ -84,12 +85,6 @@ function CatalogSkeletonGrid() {
   );
 }
 
-function parsePositiveInt(value: string | null, fallback: number) {
-  const parsed = Number(value);
-  if (!Number.isFinite(parsed) || parsed < 1) return fallback;
-  return Math.floor(parsed);
-}
-
 export default function StoreCatalogClient() {
   const router = useRouter();
   const pathname = usePathname();
@@ -101,18 +96,22 @@ export default function StoreCatalogClient() {
   const [meta, setMeta] = useState({ total: 0, limit: PAGE_SIZE, offset: 0 });
   const [categories, setCategories] = useState<CategoriesResponse["data"]["items"]>([]);
 
-  const search = searchParams.get("search")?.trim() ?? "";
-  const page = parsePositiveInt(searchParams.get("page"), 1);
+  const parsedQuery = useMemo(
+    () => parseCatalogFiltersFromSearchParams(new URLSearchParams(searchParams.toString())),
+    [searchParams],
+  );
+  const search = parsedQuery.search ?? "";
+  const page = parsedQuery.page ?? 1;
 
   const filters = useMemo<FiltersState>(
     () => ({
-      categoryId: searchParams.get("categoryId") ?? undefined,
-      minPrice: searchParams.get("minPrice") ?? undefined,
-      maxPrice: searchParams.get("maxPrice") ?? undefined,
-      inStock: searchParams.get("inStock") === "1" ? true : undefined,
-      sort: searchParams.get("sort") ?? "RELEVANCE",
+      categoryId: parsedQuery.categoryId,
+      minPrice: parsedQuery.minPrice,
+      maxPrice: parsedQuery.maxPrice,
+      inStock: parsedQuery.inStock,
+      sort: parsedQuery.sort,
     }),
-    [searchParams],
+    [parsedQuery.categoryId, parsedQuery.inStock, parsedQuery.maxPrice, parsedQuery.minPrice, parsedQuery.sort],
   );
 
   const updateUrl = useCallback(
@@ -169,41 +168,49 @@ export default function StoreCatalogClient() {
     [updateUrl],
   );
 
-  const loadCatalog = useCallback(async () => {
+  const loadCatalog = useCallback(() => {
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
-    try {
-      const params = new URLSearchParams({
-        limit: String(PAGE_SIZE),
-        offset: String((page - 1) * PAGE_SIZE),
-        expand: "variants",
-      });
-      if (search) params.set("search", search);
-      if (filters.categoryId) params.set("categoryId", filters.categoryId);
-      if (filters.minPrice) params.set("minPrice", filters.minPrice);
-      if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
-      if (filters.inStock) params.set("inStock", "1");
-      if (filters.sort && filters.sort !== "RELEVANCE") params.set("sort", filters.sort);
+    void (async () => {
+      try {
+        const params = new URLSearchParams({
+          limit: String(PAGE_SIZE),
+          offset: String((page - 1) * PAGE_SIZE),
+          expand: "variants",
+        });
+        if (search) params.set("search", search);
+        if (filters.categoryId) params.set("categoryId", filters.categoryId);
+        if (filters.minPrice) params.set("minPrice", filters.minPrice);
+        if (filters.maxPrice) params.set("maxPrice", filters.maxPrice);
+        if (filters.inStock) params.set("inStock", "1");
+        if (filters.sort && filters.sort !== "RELEVANCE") params.set("sort", filters.sort);
 
-      const response = await fetch(`/api/store/catalog?${params.toString()}`, { cache: "no-store" });
-      if (!response.ok) {
-        throw new Error("Failed to load catalog.");
+        const response = await fetch(`/api/store/catalog?${params.toString()}`, {
+          cache: "no-store",
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          throw new Error("Failed to load catalog.");
+        }
+
+        const payload = (await response.json()) as CatalogResponse;
+        setItems(payload.data);
+        setMeta(payload.meta);
+      } catch (error) {
+        if (error instanceof Error && error.name === "AbortError") return;
+        setError("No fue posible cargar el catalogo.");
+        setItems([]);
+        setMeta({ total: 0, limit: PAGE_SIZE, offset: 0 });
+      } finally {
+        setLoading(false);
       }
-
-      const payload = (await response.json()) as CatalogResponse;
-      setItems(payload.data);
-      setMeta(payload.meta);
-    } catch {
-      setError("No fue posible cargar el catalogo.");
-      setItems([]);
-      setMeta({ total: 0, limit: PAGE_SIZE, offset: 0 });
-    } finally {
-      setLoading(false);
-    }
+    })();
+    return () => controller.abort();
   }, [filters.categoryId, filters.inStock, filters.maxPrice, filters.minPrice, filters.sort, page, search]);
 
   useEffect(() => {
-    void loadCatalog();
+    return loadCatalog();
   }, [loadCatalog]);
 
   useEffect(() => {
@@ -339,4 +346,3 @@ export default function StoreCatalogClient() {
     </main>
   );
 }
-

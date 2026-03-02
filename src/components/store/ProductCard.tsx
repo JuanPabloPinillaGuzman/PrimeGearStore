@@ -37,7 +37,10 @@ export function ProductCard({ product }: ProductCardProps) {
   const showNoStock = inStock === false;
 
   return (
-    <Card className="group gap-0 overflow-hidden border-border/80 bg-card/90 py-0 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5">
+    <Card
+      className="group gap-0 overflow-hidden border-border/80 bg-card/90 py-0 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
+      data-testid={`product-card-${product.id}`}
+    >
       <div className="relative">
         {product.image?.url ? (
           <Image
@@ -45,6 +48,7 @@ export function ProductCard({ product }: ProductCardProps) {
             alt={product.image.alt ?? product.name}
             width={640}
             height={480}
+            sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
             className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
           />
         ) : (
@@ -73,9 +77,7 @@ export function ProductCard({ product }: ProductCardProps) {
 
       <CardContent className="space-y-3 p-4">
         <div className="space-y-1">
-          <p className="line-clamp-2 min-h-[2.75rem] text-sm font-medium leading-5 tracking-tight">
-            {product.name}
-          </p>
+          <p className="line-clamp-2 min-h-[2.75rem] text-sm font-medium leading-5 tracking-tight">{product.name}</p>
           <p className="text-xs text-muted-foreground">
             {product.category?.name ?? "Sin categoria"}
             {product.sku ? ` · ${product.sku}` : ""}
@@ -92,16 +94,22 @@ export function ProductCard({ product }: ProductCardProps) {
       <CardFooter className="grid grid-cols-1 gap-2 border-t border-border/60 p-4">
         <div className="grid grid-cols-2 gap-2">
           <Button asChild variant="outline" className="flex-1">
-            <Link href={href}>Ver</Link>
+            <Link href={href} prefetch>
+              Ver
+            </Link>
           </Button>
           <QuickViewDialog slug={product.slug} productName={product.name} />
         </div>
         <Button asChild variant="outline" className="flex-1">
-          <Link href={href}>Detalles</Link>
+          <Link href={href} prefetch>
+            Detalles
+          </Link>
         </Button>
         {hasPrice && !showNoStock ? (
           <Button asChild className="w-full">
-            <Link href={href}>Agregar</Link>
+            <Link href={href} prefetch>
+              Agregar
+            </Link>
           </Button>
         ) : (
           <Button className="w-full" disabled aria-disabled>
