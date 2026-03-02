@@ -8,6 +8,12 @@ on:
 jobs:
   build-and-check:
     runs-on: ubuntu-latest
+    env:
+      # Prefer repo/environment secret when available; fallback keeps CI deterministic
+      # for generate/validate/build in workflows that do not require a live DB.
+      DATABASE_URL: ${{ secrets.DATABASE_URL != '' && secrets.DATABASE_URL || 'postgresql://postgres:postgres@localhost:5432/postgres?sslmode=require' }}
+      AUTH_SECRET: ${{ secrets.AUTH_SECRET != '' && secrets.AUTH_SECRET || 'ci-temporary-auth-secret' }}
+      PUBLIC_BASE_URL: ${{ secrets.PUBLIC_BASE_URL != '' && secrets.PUBLIC_BASE_URL || 'http://localhost:3000' }}
 
     steps:
       - name: Checkout
