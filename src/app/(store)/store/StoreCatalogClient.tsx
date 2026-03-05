@@ -9,8 +9,7 @@ import { FeaturedProducts } from "@/components/store/FeaturedProducts";
 import { Hero } from "@/components/store/Hero";
 import { Pagination } from "@/components/store/Pagination";
 import { ProductCard } from "@/components/store/ProductCard";
-import { PromoStrip } from "@/components/store/PromoStrip";
-import { StoreFooter } from "@/components/store/StoreFooter";
+import { PromoSection } from "@/components/store/PromoSection";
 import { FiltersPanel } from "@/components/store/filters/FiltersPanel";
 import { MobileFiltersSheet } from "@/components/store/filters/MobileFiltersSheet";
 import { Button } from "@/components/ui/button";
@@ -63,21 +62,17 @@ const PAGE_SIZE = 12;
 function CatalogSkeletonGrid() {
   return (
     <div
-      className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-2 xl:grid-cols-3"
-      aria-label="Cargando catalogo"
+      className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+      aria-label="Cargando catálogo"
     >
       {Array.from({ length: 6 }).map((_, index) => (
-        <div key={index} className="overflow-hidden rounded-xl border border-border/70 bg-card">
+        <div key={index} className="overflow-hidden rounded-2xl border border-border/70 bg-card">
           <Skeleton className="h-52 w-full rounded-none" />
           <div className="space-y-3 p-4">
             <Skeleton className="h-4 w-4/5" />
             <Skeleton className="h-4 w-2/3" />
             <Skeleton className="h-3 w-1/2" />
             <Skeleton className="h-5 w-1/3" />
-          </div>
-          <div className="grid grid-cols-2 gap-2 border-t border-border/60 p-4">
-            <Skeleton className="h-9" />
-            <Skeleton className="h-9" />
           </div>
         </div>
       ))}
@@ -111,7 +106,23 @@ export default function StoreCatalogClient() {
       inStock: parsedQuery.inStock,
       sort: parsedQuery.sort,
     }),
-    [parsedQuery.categoryId, parsedQuery.inStock, parsedQuery.maxPrice, parsedQuery.minPrice, parsedQuery.sort],
+    [
+      parsedQuery.categoryId,
+      parsedQuery.inStock,
+      parsedQuery.maxPrice,
+      parsedQuery.minPrice,
+      parsedQuery.sort,
+    ],
+  );
+
+  // Detect if any filter/search is active — hide homepage sections when searching
+  const hasActiveFilters = !!(
+    search ||
+    filters.categoryId ||
+    filters.minPrice ||
+    filters.maxPrice ||
+    filters.inStock ||
+    (filters.sort && filters.sort !== "RELEVANCE")
   );
 
   const updateUrl = useCallback(
@@ -190,16 +201,14 @@ export default function StoreCatalogClient() {
           cache: "no-store",
           signal: controller.signal,
         });
-        if (!response.ok) {
-          throw new Error("Failed to load catalog.");
-        }
+        if (!response.ok) throw new Error("Failed to load catalog.");
 
         const payload = (await response.json()) as CatalogResponse;
         setItems(payload.data);
         setMeta(payload.meta);
-      } catch (error) {
-        if (error instanceof Error && error.name === "AbortError") return;
-        setError("No fue posible cargar el catalogo.");
+      } catch (e) {
+        if (e instanceof Error && e.name === "AbortError") return;
+        setError("No fue posible cargar el catálogo.");
         setItems([]);
         setMeta({ total: 0, limit: PAGE_SIZE, offset: 0 });
       } finally {
@@ -207,7 +216,15 @@ export default function StoreCatalogClient() {
       }
     })();
     return () => controller.abort();
-  }, [filters.categoryId, filters.inStock, filters.maxPrice, filters.minPrice, filters.sort, page, search]);
+  }, [
+    filters.categoryId,
+    filters.inStock,
+    filters.maxPrice,
+    filters.minPrice,
+    filters.sort,
+    page,
+    search,
+  ]);
 
   useEffect(() => {
     return loadCatalog();
@@ -215,7 +232,7 @@ export default function StoreCatalogClient() {
 
   useEffect(() => {
     let cancelled = false;
-    async function run() {
+    void (async () => {
       try {
         const response = await fetch("/api/store/categories", { cache: "no-store" });
         const payload = (await response.json()) as CategoriesResponse;
@@ -225,59 +242,52 @@ export default function StoreCatalogClient() {
       } catch {
         if (!cancelled) setCategories([]);
       }
-    }
-    void run();
+    })();
     return () => {
       cancelled = true;
     };
   }, []);
 
   return (
-    <main aria-busy={loading} className="space-y-6">
-      <Hero />
+    <div aria-busy={loading} className="w-full">
+      {/* ── Homepage sections (hidden when filtering/searching) ── */}
+      {!hasActiveFilters && (
+        <>
+          <Hero />
 
-      <section className="space-y-4">
-        <div className="flex items-end justify-between gap-3">
-          <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-              Destacados
-            </p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-tight">Seleccion recomendada</h2>
-          </div>
-          <Button asChild variant="outline" className="rounded-full">
-            <a href="#catalogo">Ver todos</a>
-          </Button>
-        </div>
-        <FeaturedProducts />
-      </section>
+          <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+            <FeaturedProducts />
+          </section>
 
-      <section className="space-y-4">
-        <div>
-          <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-            Categorias
-          </p>
-          <h2 className="mt-1 text-2xl font-semibold tracking-tight">Explora por tipo de producto</h2>
-        </div>
-        <CategoriesGrid />
-      </section>
+          <CategoriesGrid />
 
-      <PromoStrip />
+          <section className="py-16">
+            <PromoSection />
+          </section>
+        </>
+      )}
 
+      {/* ── Full catalog ── */}
       <section
         id="catalogo"
-        className="rounded-2xl border border-border/70 bg-card/70 p-5 shadow-sm scroll-mt-24 sm:p-6"
+        className="mx-auto max-w-7xl scroll-mt-20 px-4 pb-20 sm:px-6"
       >
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        {/* Catalog header */}
+        <div className="flex flex-col gap-4 border-b border-border/50 pb-6 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">
-              Catalogo
+            <p className="font-display text-[11px] font-semibold uppercase tracking-[0.25em] text-muted-foreground">
+              {hasActiveFilters ? "Resultados" : "Catálogo"}
             </p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Catalogo completo</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              {search ? `Resultados para "${search}".` : "Explora productos disponibles con filtros avanzados."}
-            </p>
+            <h2 className="font-display mt-1 text-2xl font-extrabold tracking-tight sm:text-3xl">
+              {search ? `"${search}"` : "Catálogo completo"}
+            </h2>
+            {!hasActiveFilters && (
+              <p className="mt-1.5 text-sm text-muted-foreground">
+                Explora todos los productos disponibles con filtros avanzados.
+              </p>
+            )}
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex shrink-0 items-center gap-2">
             <div className="sm:hidden">
               <MobileFiltersSheet
                 categories={categories}
@@ -286,63 +296,75 @@ export default function StoreCatalogClient() {
                 onReset={onResetFilters}
               />
             </div>
-            <Button asChild className="rounded-full">
-              <a href="/checkout">Ir a checkout</a>
-            </Button>
+            {hasActiveFilters && (
+              <Button variant="outline" className="rounded-full" onClick={onResetFilters}>
+                Limpiar filtros
+              </Button>
+            )}
+          </div>
+        </div>
+
+        {/* Catalog grid */}
+        <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-[260px_minmax(0,1fr)]">
+          <aside className="hidden lg:block">
+            <div className="sticky top-20">
+              <FiltersPanel
+                categories={categories}
+                value={filters}
+                onChange={onFiltersChange}
+                onReset={onResetFilters}
+              />
+            </div>
+          </aside>
+
+          <div className="space-y-5">
+            {loading ? <CatalogSkeletonGrid /> : null}
+
+            {!loading && error ? (
+              <EmptyState
+                title="No pudimos cargar el catálogo"
+                description="Verifica tu conexión o intenta nuevamente."
+                actionLabel="Reintentar"
+                onAction={() => void loadCatalog()}
+              />
+            ) : null}
+
+            {!loading && !error && items.length === 0 ? (
+              <EmptyState
+                title="Sin resultados"
+                description="No encontramos productos con esos filtros. Prueba ajustando categoría, precio o stock."
+                actionLabel="Limpiar filtros"
+                onAction={onResetFilters}
+              />
+            ) : null}
+
+            {!loading && !error && items.length > 0 ? (
+              <>
+                <p className="text-sm text-muted-foreground">
+                  Mostrando {meta.offset + 1}–{Math.min(meta.offset + items.length, meta.total)} de{" "}
+                  {meta.total} resultados
+                </p>
+
+                <section
+                  aria-label="Listado de productos"
+                  className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
+                >
+                  {items.map((item) => (
+                    <ProductCard key={item.id} product={item} />
+                  ))}
+                </section>
+
+                <Pagination
+                  page={page}
+                  pageSize={PAGE_SIZE}
+                  total={meta.total}
+                  onPageChange={onPageChange}
+                />
+              </>
+            ) : null}
           </div>
         </div>
       </section>
-
-      <section className="grid grid-cols-1 gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
-        <aside className="hidden lg:block">
-          <div className="sticky top-24">
-            <FiltersPanel categories={categories} value={filters} onChange={onFiltersChange} onReset={onResetFilters} />
-          </div>
-        </aside>
-
-        <div className="space-y-4">
-          {loading ? <CatalogSkeletonGrid /> : null}
-
-          {!loading && error ? (
-            <EmptyState
-              title="No pudimos cargar el catalogo"
-              description="Verifica tu conexion o intenta nuevamente."
-              actionLabel="Reintentar"
-              onAction={() => void loadCatalog()}
-            />
-          ) : null}
-
-          {!loading && !error && items.length === 0 ? (
-            <EmptyState
-              title="Sin resultados"
-              description="No encontramos productos con esos filtros. Prueba ajustando categoria, precio o stock."
-              actionLabel="Limpiar filtros"
-              onAction={onResetFilters}
-            />
-          ) : null}
-
-          {!loading && !error && items.length > 0 ? (
-            <>
-              <div className="rounded-xl border border-border/60 bg-card/60 px-4 py-3 text-sm text-muted-foreground">
-                Mostrando {meta.offset + 1}-{Math.min(meta.offset + items.length, meta.total)} de {meta.total} resultados
-              </div>
-
-              <section
-                aria-label="Listado de productos"
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3"
-              >
-                {items.map((item) => (
-                  <ProductCard key={item.id} product={item} />
-                ))}
-              </section>
-
-              <Pagination page={page} pageSize={PAGE_SIZE} total={meta.total} onPageChange={onPageChange} />
-            </>
-          ) : null}
-        </div>
-      </section>
-
-      <StoreFooter />
-    </main>
+    </div>
   );
 }

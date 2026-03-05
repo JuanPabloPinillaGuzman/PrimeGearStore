@@ -9,22 +9,36 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, description, actionLabel, onAction }: EmptyStateProps) {
   return (
-    <div className="rounded-2xl border border-border/80 bg-card/70 p-10 text-center shadow-sm">
-      <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-border/70 bg-gradient-to-br from-primary/10 to-primary/5">
-        <svg width="28" height="28" viewBox="0 0 24 24" aria-hidden="true" className="text-primary">
-          <path
-            d="M4 6h16M6 10h12M8 14h8M10 18h4"
+    <div className="flex flex-col items-center justify-center py-20 text-center">
+      {/* Illustration */}
+      <div className="relative mb-8">
+        {/* Glow rings */}
+        <div className="absolute inset-0 rounded-full bg-primary/5 blur-2xl" />
+        <div className="relative flex size-24 items-center justify-center rounded-full border border-border/60 bg-card/80 shadow-sm backdrop-blur-sm">
+          <svg
+            width="40"
+            height="40"
+            viewBox="0 0 40 40"
             fill="none"
-            stroke="currentColor"
-            strokeWidth="1.7"
-            strokeLinecap="round"
-          />
-        </svg>
+            aria-hidden="true"
+            className="text-primary/50"
+          >
+            <rect x="4" y="8" width="32" height="4" rx="2" fill="currentColor" opacity="0.6" />
+            <rect x="8" y="18" width="24" height="3" rx="1.5" fill="currentColor" opacity="0.4" />
+            <rect x="12" y="27" width="16" height="3" rx="1.5" fill="currentColor" opacity="0.25" />
+          </svg>
+        </div>
       </div>
-      <p className="text-lg font-semibold tracking-tight">{title}</p>
-      <p className="mt-2 text-sm text-muted-foreground">{description}</p>
+
+      <p className="font-display text-xl font-bold tracking-tight">{title}</p>
+      <p className="mt-2 max-w-sm text-sm text-muted-foreground">{description}</p>
+
       {actionLabel && onAction ? (
-        <Button className="mt-5" variant="outline" onClick={onAction}>
+        <Button
+          className="mt-7 rounded-full shadow-sm shadow-primary/10"
+          variant="outline"
+          onClick={onAction}
+        >
           {actionLabel}
         </Button>
       ) : null}

@@ -46,3 +46,12 @@ export const catalogListQuerySchema = z.object({
 export const generateSlugsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(5000).default(500),
 });
+
+export const updateProductSchema = z
+  .object({
+    name: z.string().trim().min(1).max(180).optional(),
+    categoryId: z.number().int().positive().nullable().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.categoryId !== undefined, {
+    message: "At least one field is required.",
+  });

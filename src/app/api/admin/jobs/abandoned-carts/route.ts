@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { abandonedCartsRecoveryJob } from "@/modules/webstore/jobs.service";
-import { abandonedCartsJobQuerySchema } from "@/modules/webstore/validators";
+import { abandonedCartsJobQuerySchema } from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   try {

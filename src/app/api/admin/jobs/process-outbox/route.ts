@@ -3,7 +3,7 @@ import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-context";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { processNotificationOutbox } from "@/modules/notifications/outbox.service";
-import { processOutboxQuerySchema } from "@/modules/notifications/validators";
+import { processOutboxQuerySchema } from "@/modules/notifications/notifications.validators";
 
 export async function POST(request: Request) {
   const startedAt = Date.now();

@@ -3,11 +3,11 @@ import { parseOrThrow } from "@/lib/validators/parse";
 import {
   createAdminProductImage,
   listAdminProductImages,
-} from "@/modules/product-images/service";
+} from "@/modules/product-images/product-images.service";
 import {
   createProductImageSchema,
   productIdParamsSchema,
-} from "@/modules/product-images/validators";
+} from "@/modules/product-images/product-images.validators";
 
 type Params = {
   params: Promise<{ productId: string }>;

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { registerInventoryAdjust } from "@/modules/backoffice/service";
-import { inventoryAdjustSchema } from "@/modules/backoffice/validators";
+import { registerInventoryAdjust } from "@/modules/backoffice/backoffice.service";
+import { inventoryAdjustSchema } from "@/modules/backoffice/backoffice.validators";
 
 export async function POST(request: Request) {
   try {

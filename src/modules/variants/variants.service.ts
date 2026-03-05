@@ -5,7 +5,7 @@ import type {
   CreateVariantInputDto,
   CreateVariantPriceInputDto,
   UpdateVariantInputDto,
-} from "@/modules/variants/dto";
+} from "@/modules/variants/variants.dto";
 import {
   createVariant,
   createVariantPrice,
@@ -17,7 +17,7 @@ import {
   listVariantsByProduct,
   queryVariantStock,
   updateVariant,
-} from "@/modules/variants/repo";
+} from "@/modules/variants/variants.repo";
 
 function parseVariantId(value: string) {
   try {

@@ -4,7 +4,7 @@ import { AppError } from "@/lib/errors/app-error";
 import type {
   ValidateCouponInputDto,
   ValidateCouponOutputDto,
-} from "@/modules/coupons/dto";
+} from "@/modules/coupons/coupons.dto";
 import {
   createCoupon,
   createCouponRedemption,
@@ -16,7 +16,7 @@ import {
   listCoupons,
   lockCouponById,
   updateCouponByCode,
-} from "@/modules/coupons/repo";
+} from "@/modules/coupons/coupons.repo";
 
 function toDecimal(value: number | string | Prisma.Decimal) {
   return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);

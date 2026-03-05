@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 
-import { getCatalogSitemapProducts } from "@/modules/catalog/service";
+import { getCatalogSitemapProducts } from "@/modules/catalog/catalog.service";
 import { logger } from "@/lib/logger";
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {

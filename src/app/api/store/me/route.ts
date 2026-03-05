@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { AppError } from "@/lib/errors/app-error";
-import { getMe } from "@/modules/account/service";
+import { getMe } from "@/modules/account/account.service";
 
 export async function GET(request: Request) {
   try {

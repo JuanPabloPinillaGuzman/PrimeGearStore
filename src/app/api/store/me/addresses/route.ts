@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { AppError } from "@/lib/errors/app-error";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { createMyAddress, getMyAddresses } from "@/modules/account/service";
-import { createCustomerAddressSchema } from "@/modules/account/validators";
+import { createMyAddress, getMyAddresses } from "@/modules/account/account.service";
+import { createCustomerAddressSchema } from "@/modules/account/account.validators";
 
 export async function GET(request: Request) {
   try {

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getApplicableBundles } from "@/modules/webstore/service";
-import { bundleApplicableQuerySchema } from "@/modules/webstore/validators";
+import { getApplicableBundles } from "@/modules/webstore/webstore.service";
+import { bundleApplicableQuerySchema } from "@/modules/webstore/webstore.validators";
 
 export async function GET(request: Request) {
   try {

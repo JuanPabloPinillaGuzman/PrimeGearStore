@@ -17,13 +17,14 @@ import type {
   ProductDetailDto,
   ProductRecommendationDto,
   StoreCategoriesOutputDto,
-} from "@/modules/catalog/dto";
+} from "@/modules/catalog/catalog.dto";
 import {
   bulkSetProductsActive,
   bulkSetProductsCategory,
   countActiveProductsForCatalog,
   createProduct,
   findCategoryById,
+  updateProductById,
   findActiveProductByIdForStore,
   findActiveProductsForCatalog,
   findActiveVariantsByProductId,
@@ -39,8 +40,8 @@ import {
   listProductCategoryOptions,
   countProductsForAdmin,
   listStoreCategoriesWithActiveProductCount,
-} from "@/modules/catalog/repo";
-import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/repo";
+} from "@/modules/catalog/catalog.repo";
+import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/variants.repo";
 
 function mapCatalogRowToItem(row: Awaited<ReturnType<typeof findActiveProductsForCatalog>>[number]): CatalogItemDto {
   return {
@@ -294,6 +295,20 @@ export async function getStoreCategories(): Promise<StoreCategoriesOutputDto> {
       activeProductsCount: Number(row.active_products_count),
     })),
   };
+}
+
+export async function updateCatalogProductForAdmin(
+  productId: number,
+  data: { name?: string; categoryId?: number | null },
+) {
+  if (data.name !== undefined && data.name.trim().length === 0) {
+    throw new AppError("BAD_REQUEST", 400, "Name cannot be empty.");
+  }
+  if (data.categoryId !== undefined && data.categoryId !== null) {
+    const category = await findCategoryById(data.categoryId);
+    if (!category) throw new AppError("BAD_REQUEST", 400, "Category not found.");
+  }
+  return updateProductById(productId, data);
 }
 
 export async function generateProductSlugs(limit = 500): Promise<GenerateSlugsOutputDto> {

@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { AppError } from "@/lib/errors/app-error";
-import { getOrderDetailsByNumber } from "@/modules/webstore/service";
+import { getOrderDetailsByNumber } from "@/modules/webstore/webstore.service";
 
 import { PrintButton } from "./print-button";
 
@@ -28,7 +28,7 @@ export default async function OrderReceiptPage({ params }: Params) {
 
         <section className="space-y-4 rounded-lg border p-6">
           <div>
-            <h1 className="text-2xl font-semibold">Receipt / Recibo</h1>
+            <h1 className="font-display text-2xl font-extrabold tracking-tight">Receipt / Recibo</h1>
             <p className="text-sm text-muted-foreground">Pedido {order.orderNumber}</p>
           </div>
 

@@ -1,8 +1,8 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { createShipmentForOrder, updateShipmentForOrderService } from "@/modules/fulfillment/shipment.service";
-import { adminOrderNumberParamsSchema } from "@/modules/admin-orders/validators";
-import { createShipmentSchema, updateShipmentSchema } from "@/modules/fulfillment/validators";
+import { adminOrderNumberParamsSchema } from "@/modules/admin-orders/admin-orders.validators";
+import { createShipmentSchema, updateShipmentSchema } from "@/modules/fulfillment/fulfillment.validators";
 
 type Params = {
   params: Promise<{

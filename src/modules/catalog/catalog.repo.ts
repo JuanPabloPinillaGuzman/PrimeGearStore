@@ -714,3 +714,17 @@ export async function listStoreCategoriesWithActiveProductCount(limit = 12) {
     LIMIT ${limit}
   `);
 }
+
+export async function updateProductById(
+  productId: number,
+  data: { name?: string; categoryId?: number | null },
+) {
+  return prisma.product.update({
+    where: { id: productId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+    },
+    select: { id: true, name: true, categoryId: true },
+  });
+}

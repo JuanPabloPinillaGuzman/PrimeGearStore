@@ -8,7 +8,7 @@ import type {
   MercadoPagoInitInputDto,
   MercadoPagoInitOutputDto,
   MercadoPagoWebhookResultDto,
-} from "@/modules/webstore/dto";
+} from "@/modules/webstore/webstore.dto";
 import { recordPaymentEvent } from "@/modules/webstore/payment.service";
 import {
   createMercadoPagoPreference,
@@ -23,7 +23,7 @@ import {
   updateOrderStatus,
   updateOrderPayment,
   withTransaction,
-} from "@/modules/webstore/repo";
+} from "@/modules/webstore/webstore.repo";
 
 type MpWebhookProcessInput = {
   queryType?: string;

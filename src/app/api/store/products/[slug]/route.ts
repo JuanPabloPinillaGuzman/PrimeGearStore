@@ -1,6 +1,6 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getCatalogProductDetailBySlugWithStock } from "@/modules/catalog/service";
+import { getCatalogProductDetailBySlugWithStock } from "@/modules/catalog/catalog.service";
 import { z } from "zod";
 
 const paramsSchema = z.object({

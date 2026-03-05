@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { AppError } from "@/lib/errors/app-error";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getMyPersonalizedRecommendations } from "@/modules/wishlist/service";
-import { meRecommendationsQuerySchema } from "@/modules/wishlist/validators";
+import { getMyPersonalizedRecommendations } from "@/modules/wishlist/wishlist.service";
+import { meRecommendationsQuerySchema } from "@/modules/wishlist/wishlist.validators";
 
 export async function GET(request: Request) {
   try {

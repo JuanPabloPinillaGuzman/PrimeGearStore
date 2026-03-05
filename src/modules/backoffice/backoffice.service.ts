@@ -1,7 +1,7 @@
 import { Prisma, StockMovementType } from "@prisma/client";
 
 import { AppError } from "@/lib/errors/app-error";
-import { updateVariantAverageCostForInbound } from "@/modules/costing/service";
+import { updateVariantAverageCostForInbound } from "@/modules/costing/costing.service";
 import type {
   CreatePurchaseInputDto,
   CreatePurchaseOutputDto,
@@ -16,7 +16,7 @@ import type {
   SalesDailyQueryDto,
   TopProductItemDto,
   TopProductsQueryDto,
-} from "@/modules/backoffice/dto";
+} from "@/modules/backoffice/backoffice.dto";
 import {
   createInventoryMovement,
   createInventoryMovements,
@@ -32,7 +32,7 @@ import {
   querySalesDaily,
   queryTopProducts,
   withTransaction,
-} from "@/modules/backoffice/repo";
+} from "@/modules/backoffice/backoffice.repo";
 
 function toDecimal(value: number) {
   return new Prisma.Decimal(value);

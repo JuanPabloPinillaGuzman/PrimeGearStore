@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import { AppError } from "@/lib/errors/app-error";
 import type { EmailProvider } from "@/modules/notifications/email.provider";
-import type { NotificationEventType, ProcessOutboxResultDto } from "@/modules/notifications/dto";
+import type { NotificationEventType, ProcessOutboxResultDto } from "@/modules/notifications/notifications.dto";
 import {
   countPendingOutbox,
   enqueueCartNotificationOutbox,

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { applyBundleToCart } from "@/modules/webstore/service";
-import { applyBundleSchema } from "@/modules/webstore/validators";
+import { applyBundleToCart } from "@/modules/webstore/webstore.service";
+import { applyBundleSchema } from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   try {

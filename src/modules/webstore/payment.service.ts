@@ -2,7 +2,7 @@ import { OrderPaymentStatus, PaymentMethod, Prisma } from "@prisma/client";
 
 import { AppError } from "@/lib/errors/app-error";
 import { confirmOrderPaidInTransaction } from "@/modules/webstore/order-to-sale.service";
-import type { PaymentEventResultDto } from "@/modules/webstore/dto";
+import type { PaymentEventResultDto } from "@/modules/webstore/webstore.dto";
 import {
   createOrderPayment,
   findOrderByNumber,
@@ -10,7 +10,7 @@ import {
   findSaleByOrderIdInNotes,
   updateOrderPayment,
   withTransaction,
-} from "@/modules/webstore/repo";
+} from "@/modules/webstore/webstore.repo";
 
 function toPaymentStatus(status: string): OrderPaymentStatus {
   const normalized = status.trim().toUpperCase();

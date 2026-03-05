@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getCatalogItems } from "@/modules/catalog/service";
-import { catalogListQuerySchema } from "@/modules/catalog/validators";
+import { getCatalogItems } from "@/modules/catalog/catalog.service";
+import { catalogListQuerySchema } from "@/modules/catalog/catalog.validators";
 
 export async function GET(request: Request) {
   try {

@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { AppError } from "@/lib/errors/app-error";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { toggleMyWishlistItem } from "@/modules/wishlist/service";
-import { wishlistToggleSchema } from "@/modules/wishlist/validators";
+import { toggleMyWishlistItem } from "@/modules/wishlist/wishlist.service";
+import { wishlistToggleSchema } from "@/modules/wishlist/wishlist.validators";
 
 export async function POST(request: Request) {
   try {

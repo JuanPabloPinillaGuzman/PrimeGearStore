@@ -1,3 +1,5 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
 export function BrandMark({
@@ -10,22 +12,17 @@ export function BrandMark({
   if (compact) {
     return (
       <span
-        className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 bg-background text-xs font-semibold tracking-[0.14em] shadow-xs",
-          className,
-        )}
+        className={cn("inline-flex items-center justify-center", className)}
         aria-label="PrimeGearStore"
       >
-        PG
+        <Image src="/logo.png" alt="PrimeGearStore" width={32} height={32} className="object-contain" priority />
       </span>
     );
   }
 
   return (
     <span className={cn("inline-flex items-center gap-2", className)}>
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-semibold tracking-[0.14em] text-primary-foreground shadow-sm">
-        PG
-      </span>
+      <Image src="/logo.png" alt="PrimeGearStore" width={32} height={32} className="object-contain" priority />
       <span className="text-sm font-semibold tracking-[0.14em] text-foreground">PRIMEGEARSTORE</span>
     </span>
   );

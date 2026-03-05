@@ -47,6 +47,14 @@ function buildInitialForm(initialValue?: AddressFormValue | null): AddressFormVa
   );
 }
 
+function FieldLabel({ htmlFor, children }: { htmlFor: string; children: React.ReactNode }) {
+  return (
+    <label htmlFor={htmlFor} className="text-xs font-medium text-muted-foreground">
+      {children}
+    </label>
+  );
+}
+
 export function AddressFormDialog({
   open,
   onOpenChange,
@@ -70,7 +78,7 @@ export function AddressFormDialog({
       await onSubmit(form);
       onOpenChange(false);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Could not save address.");
+      setError(e instanceof Error ? e.message : "No fue posible guardar la dirección.");
     }
   }
 
@@ -78,82 +86,134 @@ export function AddressFormDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{initialValue ? "Editar direccion" : "Nueva direccion"}</DialogTitle>
-          <DialogDescription>Guarda direcciones para acelerar checkout.</DialogDescription>
+          <DialogTitle>{initialValue ? "Editar dirección" : "Nueva dirección"}</DialogTitle>
+          <DialogDescription>Guarda direcciones para acelerar el checkout.</DialogDescription>
         </DialogHeader>
         <form className="grid gap-3" onSubmit={handleSubmit}>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Select
-              value={form.type}
-              onChange={(e) => setForm((prev) => ({ ...prev, type: e.target.value as "SHIPPING" | "BILLING" }))}
-            >
-              <option value="SHIPPING">SHIPPING</option>
-              <option value="BILLING">BILLING</option>
-            </Select>
-            <Input
-              value={form.country}
-              onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
-              placeholder="Pais"
-            />
+            <div className="space-y-1">
+              <FieldLabel htmlFor="addr-type">Tipo</FieldLabel>
+              <Select
+                id="addr-type"
+                value={form.type}
+                onChange={(e) =>
+                  setForm((prev) => ({ ...prev, type: e.target.value as "SHIPPING" | "BILLING" }))
+                }
+              >
+                <option value="SHIPPING">Envío</option>
+                <option value="BILLING">Facturación</option>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <FieldLabel htmlFor="addr-country">País</FieldLabel>
+              <Input
+                id="addr-country"
+                value={form.country}
+                onChange={(e) => setForm((prev) => ({ ...prev, country: e.target.value }))}
+                placeholder="CO"
+              />
+            </div>
           </div>
-          <Input
-            value={form.fullName}
-            onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
-            placeholder="Nombre completo"
-            required
-          />
-          <Input
-            value={form.phone}
-            onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
-            placeholder="Telefono"
-            required
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
+
+          <div className="space-y-1">
+            <FieldLabel htmlFor="addr-fullname">Nombre completo</FieldLabel>
             <Input
-              value={form.department}
-              onChange={(e) => setForm((prev) => ({ ...prev, department: e.target.value }))}
-              placeholder="Departamento"
-              required
-            />
-            <Input
-              value={form.city}
-              onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
-              placeholder="Ciudad"
+              id="addr-fullname"
+              value={form.fullName}
+              onChange={(e) => setForm((prev) => ({ ...prev, fullName: e.target.value }))}
+              placeholder="Juan Pérez"
               required
             />
           </div>
-          <Input
-            value={form.addressLine1}
-            onChange={(e) => setForm((prev) => ({ ...prev, addressLine1: e.target.value }))}
-            placeholder="Direccion principal"
-            required
-          />
-          <Input
-            value={form.addressLine2 ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, addressLine2: e.target.value }))}
-            placeholder="Complemento (opcional)"
-          />
-          <div className="grid gap-3 sm:grid-cols-2">
+
+          <div className="space-y-1">
+            <FieldLabel htmlFor="addr-phone">Teléfono</FieldLabel>
             <Input
-              value={form.postalCode ?? ""}
-              onChange={(e) => setForm((prev) => ({ ...prev, postalCode: e.target.value }))}
-              placeholder="Codigo postal"
+              id="addr-phone"
+              value={form.phone}
+              onChange={(e) => setForm((prev) => ({ ...prev, phone: e.target.value }))}
+              placeholder="+57 300 000 0000"
+              required
             />
-            <label className="flex items-center gap-2 rounded-md border px-3 text-sm">
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <FieldLabel htmlFor="addr-dept">Departamento</FieldLabel>
+              <Input
+                id="addr-dept"
+                value={form.department}
+                onChange={(e) => setForm((prev) => ({ ...prev, department: e.target.value }))}
+                placeholder="Antioquia"
+                required
+              />
+            </div>
+            <div className="space-y-1">
+              <FieldLabel htmlFor="addr-city">Ciudad</FieldLabel>
+              <Input
+                id="addr-city"
+                value={form.city}
+                onChange={(e) => setForm((prev) => ({ ...prev, city: e.target.value }))}
+                placeholder="Medellín"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1">
+            <FieldLabel htmlFor="addr-line1">Dirección</FieldLabel>
+            <Input
+              id="addr-line1"
+              value={form.addressLine1}
+              onChange={(e) => setForm((prev) => ({ ...prev, addressLine1: e.target.value }))}
+              placeholder="Calle 10 # 40-20"
+              required
+            />
+          </div>
+
+          <div className="space-y-1">
+            <FieldLabel htmlFor="addr-line2">Complemento</FieldLabel>
+            <Input
+              id="addr-line2"
+              value={form.addressLine2 ?? ""}
+              onChange={(e) => setForm((prev) => ({ ...prev, addressLine2: e.target.value }))}
+              placeholder="Apto 301 (opcional)"
+            />
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <FieldLabel htmlFor="addr-postal">Código postal</FieldLabel>
+              <Input
+                id="addr-postal"
+                value={form.postalCode ?? ""}
+                onChange={(e) => setForm((prev) => ({ ...prev, postalCode: e.target.value }))}
+                placeholder="050001"
+              />
+            </div>
+            <label className="flex cursor-pointer items-center gap-2 self-end rounded-md border px-3 py-2 text-sm">
               <input
                 type="checkbox"
                 checked={form.isDefault}
                 onChange={(e) => setForm((prev) => ({ ...prev, isDefault: e.target.checked }))}
+                aria-label="Marcar como dirección predeterminada"
               />
               Predeterminada
             </label>
           </div>
-          <Input
-            value={form.notes ?? ""}
-            onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
-            placeholder="Notas (opcional)"
-          />
-          {error ? <p className="text-sm text-red-600">{error}</p> : null}
+
+          <div className="space-y-1">
+            <FieldLabel htmlFor="addr-notes">Notas</FieldLabel>
+            <Input
+              id="addr-notes"
+              value={form.notes ?? ""}
+              onChange={(e) => setForm((prev) => ({ ...prev, notes: e.target.value }))}
+              placeholder="Instrucciones de entrega (opcional)"
+            />
+          </div>
+
+          {error ? <p className="text-sm text-destructive">{error}</p> : null}
+
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
               Cancelar

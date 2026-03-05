@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getProfitDailyReport } from "@/modules/backoffice/service";
-import { profitDailyQuerySchema } from "@/modules/backoffice/validators";
+import { getProfitDailyReport } from "@/modules/backoffice/backoffice.service";
+import { profitDailyQuerySchema } from "@/modules/backoffice/backoffice.validators";
 
 export async function GET(request: Request) {
   try {

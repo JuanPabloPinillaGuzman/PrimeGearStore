@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { createPurchase } from "@/modules/backoffice/service";
-import { createPurchaseSchema } from "@/modules/backoffice/validators";
+import { createPurchase } from "@/modules/backoffice/backoffice.service";
+import { createPurchaseSchema } from "@/modules/backoffice/backoffice.validators";
 
 export async function POST(request: Request) {
   try {

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getInventoryStock } from "@/modules/backoffice/service";
-import { inventoryStockQuerySchema } from "@/modules/backoffice/validators";
+import { getInventoryStock } from "@/modules/backoffice/backoffice.service";
+import { inventoryStockQuerySchema } from "@/modules/backoffice/backoffice.validators";
 
 export async function GET(request: Request) {
   try {

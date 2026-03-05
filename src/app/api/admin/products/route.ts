@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { createCatalogProduct, listCatalogProductsForAdmin } from "@/modules/catalog/service";
-import { adminProductsListQuerySchema, createProductSchema } from "@/modules/catalog/validators";
+import { createCatalogProduct, listCatalogProductsForAdmin } from "@/modules/catalog/catalog.service";
+import { adminProductsListQuerySchema, createProductSchema } from "@/modules/catalog/catalog.validators";
 
 export async function GET(request: Request) {
   try {

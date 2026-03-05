@@ -3,8 +3,8 @@ import { parseOrThrow } from "@/lib/validators/parse";
 import {
   createAdminCoupon,
   listAdminCoupons,
-} from "@/modules/coupons/service";
-import { createCouponSchema } from "@/modules/coupons/validators";
+} from "@/modules/coupons/coupons.service";
+import { createCouponSchema } from "@/modules/coupons/coupons.validators";
 
 export async function GET(request: Request) {
   try {

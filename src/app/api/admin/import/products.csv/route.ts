@@ -2,7 +2,7 @@ import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import {
   importProductsCsvText,
   readCsvImportRequestBody,
-} from "@/modules/backoffice/imports/service";
+} from "@/modules/backoffice/imports/imports.service";
 
 export async function POST(request: Request) {
   try {

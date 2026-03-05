@@ -1,10 +1,10 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { updateAdminCouponByCode } from "@/modules/coupons/service";
+import { updateAdminCouponByCode } from "@/modules/coupons/coupons.service";
 import {
   adminCouponCodeParamsSchema,
   updateCouponSchema,
-} from "@/modules/coupons/validators";
+} from "@/modules/coupons/coupons.validators";
 
 type Params = {
   params: Promise<{

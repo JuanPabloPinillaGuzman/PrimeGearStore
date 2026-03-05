@@ -1,9 +1,9 @@
 import { OrderStatus, Prisma } from "@prisma/client";
 
 import { AppError } from "@/lib/errors/app-error";
-import { evaluateCouponForOrderSubtotal } from "@/modules/coupons/service";
+import { evaluateCouponForOrderSubtotal } from "@/modules/coupons/coupons.service";
 import { enqueueOrderNotificationEventInTransaction } from "@/modules/notifications/outbox.service";
-import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/repo";
+import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/variants.repo";
 import type {
   AddCartItemInputDto,
   AddCartItemOutputDto,
@@ -20,7 +20,7 @@ import type {
   OrderDetailsDto,
   RecoverCartByTokenOutputDto,
   UpdateCartItemInputDto,
-} from "@/modules/webstore/dto";
+} from "@/modules/webstore/webstore.dto";
 import {
   applyBundleToCart as applyBundleToCartRepo,
   createOpenCart,
@@ -53,7 +53,7 @@ import {
   deleteCartItemById,
   listActiveBundlesWithItems,
   withTransaction,
-} from "@/modules/webstore/repo";
+} from "@/modules/webstore/webstore.repo";
 
 function generateOrderNumber() {
   const now = new Date();

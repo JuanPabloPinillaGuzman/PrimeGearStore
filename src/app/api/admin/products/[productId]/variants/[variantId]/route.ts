@@ -3,11 +3,11 @@ import { parseOrThrow } from "@/lib/validators/parse";
 import {
   deleteProductVariant,
   updateProductVariant,
-} from "@/modules/variants/service";
+} from "@/modules/variants/variants.service";
 import {
   productVariantParamsSchema,
   updateVariantSchema,
-} from "@/modules/variants/validators";
+} from "@/modules/variants/variants.validators";
 
 type Params = {
   params: Promise<{

@@ -4,7 +4,7 @@ import type {
   CreateProductImageInputDto,
   ProductImageListOutputDto,
   UpdateProductImageInputDto,
-} from "@/modules/product-images/dto";
+} from "@/modules/product-images/product-images.dto";
 import {
   clearPrimaryImageForProduct,
   createProductImage,
@@ -15,7 +15,7 @@ import {
   listProductImages,
   listProductImagesTx,
   updateProductImage,
-} from "@/modules/product-images/repo";
+} from "@/modules/product-images/product-images.repo";
 
 function toItemDto(row: Awaited<ReturnType<typeof listProductImages>>[number]) {
   return {

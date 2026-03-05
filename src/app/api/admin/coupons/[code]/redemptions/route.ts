@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getAdminCouponRedemptions } from "@/modules/coupons/service";
-import { adminCouponCodeParamsSchema } from "@/modules/coupons/validators";
+import { getAdminCouponRedemptions } from "@/modules/coupons/coupons.service";
+import { adminCouponCodeParamsSchema } from "@/modules/coupons/coupons.validators";
 
 type Params = {
   params: Promise<{

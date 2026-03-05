@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getVariantStock } from "@/modules/variants/service";
-import { variantStockQuerySchema } from "@/modules/variants/validators";
+import { getVariantStock } from "@/modules/variants/variants.service";
+import { variantStockQuerySchema } from "@/modules/variants/variants.validators";
 
 export async function GET(request: Request) {
   try {

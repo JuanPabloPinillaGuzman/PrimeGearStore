@@ -6,7 +6,6 @@ import { useEffect, useMemo, useState } from "react";
 import { EmptyState } from "@/components/store/EmptyState";
 import { ProductCard } from "@/components/store/ProductCard";
 import { RecommendedProductsSection } from "@/components/store/RecommendedProductsSection";
-import { StoreFooter } from "@/components/store/StoreFooter";
 import { useWishlist } from "@/components/store/hooks/useWishlist";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -140,21 +139,23 @@ export default function WishlistPage() {
   }, [dbWishlistProducts, isAuthenticated, ready, slugs]);
 
   return (
-    <main className="space-y-6 pb-6">
-      <section className="rounded-2xl border border-border/70 bg-card/70 p-5 shadow-sm sm:p-6">
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="text-xs font-medium tracking-[0.18em] text-muted-foreground uppercase">Wishlist</p>
-            <h1 className="mt-1 text-2xl font-semibold tracking-tight sm:text-3xl">Tus favoritos</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Guarda productos para revisarlos después y agregarlos al carrito cuando quieras.
-            </p>
-          </div>
-          <Button asChild variant="outline" className="rounded-full">
-            <Link href="/store">Seguir comprando</Link>
-          </Button>
+    <main className="mx-auto max-w-7xl space-y-8 px-4 py-10 pb-16 sm:px-6">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="font-display text-[11px] font-semibold uppercase tracking-[0.28em] text-primary/70">
+            Wishlist
+          </p>
+          <h1 className="font-display mt-3 text-3xl font-extrabold tracking-tight sm:text-4xl">
+            Tus favoritos
+          </h1>
+          <p className="mt-2 text-base text-muted-foreground">
+            Guarda productos para revisarlos después.
+          </p>
         </div>
-      </section>
+        <Button asChild variant="outline" className="shrink-0 rounded-full">
+          <Link href="/store">Seguir comprando</Link>
+        </Button>
+      </div>
 
       {!ready || loading ? <WishlistSkeleton /> : null}
 
@@ -192,8 +193,6 @@ export default function WishlistPage() {
         endpoint={recommendationEndpoint}
         emptyDescription="Agrega favoritos o realiza compras para recibir mejores recomendaciones."
       />
-
-      <StoreFooter />
     </main>
   );
 }
