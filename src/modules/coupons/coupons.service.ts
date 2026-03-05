@@ -8,6 +8,7 @@ import type {
 import {
   createCoupon,
   createCouponRedemption,
+  deleteCouponByCode,
   findCouponByCode,
   findCouponRedemptionByOrderId,
   findOpenCartWithItems,
@@ -297,6 +298,13 @@ export async function updateAdminCouponByCode(
   });
 
   return { id: updated.id.toString(), code: updated.code, isActive: updated.isActive };
+}
+
+export async function deleteAdminCouponByCode(code: string) {
+  const existing = await findCouponByCode(code.trim().toUpperCase());
+  if (!existing) throw new AppError("NOT_FOUND", 404, "Coupon not found.");
+  await deleteCouponByCode(existing.code);
+  return { code: existing.code };
 }
 
 export async function getAdminCouponRedemptions(code: string) {

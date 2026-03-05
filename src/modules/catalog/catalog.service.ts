@@ -40,6 +40,8 @@ import {
   listProductCategoryOptions,
   countProductsForAdmin,
   listStoreCategoriesWithActiveProductCount,
+  setProductFeatured,
+  listFeaturedProductsForAdmin,
 } from "@/modules/catalog/catalog.repo";
 import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/variants.repo";
 
@@ -227,10 +229,11 @@ export async function listCatalogProductsForAdmin(
       name: row.name,
       sku: row.sku,
       slug: row.slug,
-      isActive: row.isActive,
-      categoryId: row.categoryId,
-      categoryName: row.category?.name ?? null,
-      createdAt: row.createdAt.toISOString(),
+      isActive: row.is_active,
+      isFeatured: row.is_featured,
+      categoryId: row.category_id,
+      categoryName: row.category_name ?? null,
+      createdAt: row.created_at.toISOString(),
     })),
     pagination: {
       limit: query.limit,
@@ -309,6 +312,15 @@ export async function updateCatalogProductForAdmin(
     if (!category) throw new AppError("BAD_REQUEST", 400, "Category not found.");
   }
   return updateProductById(productId, data);
+}
+
+export async function setProductFeaturedStatus(productId: number, isFeatured: boolean) {
+  return setProductFeatured(productId, isFeatured);
+}
+
+export async function listFeaturedProductsAdmin() {
+  const rows = await listFeaturedProductsForAdmin();
+  return rows.map((row) => ({ id: row.id, name: row.name, sku: row.sku, categoryId: row.category_id }));
 }
 
 export async function generateProductSlugs(limit = 500): Promise<GenerateSlugsOutputDto> {

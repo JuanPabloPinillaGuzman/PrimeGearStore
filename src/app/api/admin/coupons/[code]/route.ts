@@ -1,6 +1,6 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { updateAdminCouponByCode } from "@/modules/coupons/coupons.service";
+import { deleteAdminCouponByCode, updateAdminCouponByCode } from "@/modules/coupons/coupons.service";
 import {
   adminCouponCodeParamsSchema,
   updateCouponSchema,
@@ -23,3 +23,12 @@ export async function PATCH(request: Request, { params }: Params) {
   }
 }
 
+export async function DELETE(request: Request, { params }: Params) {
+  try {
+    const routeParams = parseOrThrow(adminCouponCodeParamsSchema, await params);
+    const data = await deleteAdminCouponByCode(routeParams.code);
+    return jsonOk({ data }, 200, request);
+  } catch (error) {
+    return handleRouteError(error, request);
+  }
+}

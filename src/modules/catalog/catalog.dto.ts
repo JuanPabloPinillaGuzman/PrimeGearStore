@@ -24,6 +24,7 @@ export type CatalogListQueryDto = {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  featured?: boolean;
   sort?: CatalogSort;
   limit: number;
   offset: number;
@@ -131,6 +132,7 @@ export type AdminProductsListOutputDto = {
     sku: string | null;
     slug: string | null;
     isActive: boolean;
+    isFeatured: boolean;
     categoryId: number | null;
     categoryName: string | null;
     createdAt: string;

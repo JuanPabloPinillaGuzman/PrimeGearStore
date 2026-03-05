@@ -18,6 +18,7 @@ type ProductCardProps = {
     variants?: Array<{ id: string; isInStock?: boolean }>;
   };
   index?: number;
+  variant?: "catalog" | "featured";
 };
 
 function resolveProductHref(product: ProductCardProps["product"]) {
@@ -29,12 +30,13 @@ function resolveStock(product: ProductCardProps["product"]) {
   return product.variants.some((v) => v.isInStock !== false);
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, variant = "catalog" }: ProductCardProps) {
   const href = resolveProductHref(product);
   const hasPrice = !!product.price;
   const inStock = resolveStock(product);
   const showNoStock = inStock === false;
   const canAddToCart = hasPrice && !showNoStock;
+  const isFeatured = variant === "featured";
 
   const singleVariantId =
     product.variants && product.variants.length === 1
@@ -42,9 +44,9 @@ export function ProductCard({ product }: ProductCardProps) {
       : null;
 
   return (
-    <div className="group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md hover:shadow-black/5">
+    <div className={`group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md hover:shadow-black/5${isFeatured ? " h-full" : ""}`}>
       {/* Image */}
-      <Link href={href} className="relative block aspect-square overflow-hidden bg-muted/30">
+      <Link href={href} className={`relative block overflow-hidden bg-muted/30${isFeatured ? " h-52 shrink-0" : " aspect-square"}`}>
         {product.image?.url ? (
           <Image
             src={product.image.url}
@@ -63,8 +65,8 @@ export function ProductCard({ product }: ProductCardProps) {
       </Link>
 
       {/* Info */}
-      <div className="flex flex-1 flex-col gap-3 p-4">
-        <div className="flex-1 space-y-0.5">
+      <div className={`flex flex-1 flex-col gap-3 p-4${isFeatured ? " items-center text-center" : ""}`}>
+        <div className={`flex-1 space-y-0.5${isFeatured ? " text-center" : ""}`}>
           <Link href={href} className="block">
             <p className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight hover:text-primary transition-colors">
               {product.name}
@@ -78,10 +80,17 @@ export function ProductCard({ product }: ProductCardProps) {
         <Price
           amount={product.price?.amount}
           currency={product.price?.currency ?? "COP"}
-          className="text-base font-bold tracking-tight"
+          className={`text-base font-bold tracking-tight${isFeatured ? " text-center" : ""}`}
         />
 
-        {canAddToCart ? (
+        {isFeatured ? (
+          <Link
+            href={href}
+            className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Dar un vistazo
+          </Link>
+        ) : canAddToCart ? (
           <AddToCartButton
             productId={product.id}
             variantId={singleVariantId}

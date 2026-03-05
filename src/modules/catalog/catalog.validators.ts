@@ -21,7 +21,7 @@ export const adminProductsBulkSchema = z.discriminatedUnion("action", [
 
 export const adminProductsListQuerySchema = z.object({
   search: z.string().trim().min(1).max(120).optional(),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
   offset: z.coerce.number().int().nonnegative().default(0),
 });
 

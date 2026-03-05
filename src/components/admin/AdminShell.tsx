@@ -59,7 +59,7 @@ export function AdminShell({
         {/* Sidebar */}
         <aside className="sticky top-0 hidden h-screen border-r border-border/50 bg-card/60 backdrop-blur-xl md:flex md:flex-col">
           {/* Logo */}
-          <div className="flex h-14 shrink-0 items-center px-4">
+          <div className="flex h-16 shrink-0 items-center px-4">
             <Link href="/admin">
               <BrandMark />
             </Link>

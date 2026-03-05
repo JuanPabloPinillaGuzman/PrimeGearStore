@@ -20,7 +20,6 @@ type SearchProduct = {
 type Category = {
   id: number;
   name: string;
-  slug: string | null;
 };
 
 type SearchResult = {
@@ -76,10 +75,13 @@ export function SpotlightSearch({ open, onClose }: SpotlightSearchProps) {
         ? ((await productsRes.json()) as { data: { items: SearchProduct[] } })
         : null;
       const categoriesData = categoriesRes.ok
-        ? ((await categoriesRes.json()) as { data: Category[] })
+        ? ((await categoriesRes.json()) as { data: { items: Array<{ id: number; name: string }> } })
         : null;
 
-      const filteredCategories = (categoriesData?.data ?? []).filter((c) =>
+      const allCategories = Array.isArray(categoriesData?.data?.items)
+        ? categoriesData.data.items
+        : [];
+      const filteredCategories = allCategories.filter((c) =>
         c.name.toLowerCase().includes(q.toLowerCase()),
       );
 
