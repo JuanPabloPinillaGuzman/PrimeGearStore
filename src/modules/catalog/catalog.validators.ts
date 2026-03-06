@@ -51,7 +51,19 @@ export const updateProductSchema = z
   .object({
     name: z.string().trim().min(1).max(180).optional(),
     categoryId: z.number().int().positive().nullable().optional(),
+    description: z.string().max(10000).nullable().optional(),
+    features: z
+      .array(z.object({ key: z.string().max(100), value: z.string().max(500) }))
+      .nullable()
+      .optional(),
+    paymentMethods: z.array(z.string().max(50)).nullable().optional(),
   })
-  .refine((v) => v.name !== undefined || v.categoryId !== undefined, {
-    message: "At least one field is required.",
-  });
+  .refine(
+    (v) =>
+      v.name !== undefined ||
+      v.categoryId !== undefined ||
+      v.description !== undefined ||
+      v.features !== undefined ||
+      v.paymentMethods !== undefined,
+    { message: "At least one field is required." },
+  );

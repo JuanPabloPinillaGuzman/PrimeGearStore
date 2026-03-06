@@ -9,6 +9,7 @@ import { getErrorMessage, requestJson } from "@/lib/http/client";
 type Props = {
   productId: number;
   variantId?: string | null;
+  quantity?: number;
   disabled?: boolean;
   disabledReason?: string | null;
 };
@@ -26,6 +27,7 @@ type AddToCartButtonProps = Props & {
 export function AddToCartButton({
   productId,
   variantId,
+  quantity = 1,
   disabled,
   disabledReason,
   onAdded,
@@ -52,7 +54,7 @@ export function AddToCartButton({
           sessionId,
           productId,
           variantId: variantId ? Number(variantId) : undefined,
-          quantity: 1,
+          quantity,
         }),
       });
       setCartId(payload.data.cartId);

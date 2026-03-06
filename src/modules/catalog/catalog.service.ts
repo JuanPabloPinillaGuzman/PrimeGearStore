@@ -4,6 +4,7 @@ import { AppError } from "@/lib/errors/app-error";
 import { slugify } from "@/lib/text/slug";
 import type {
   AdminProductCategoryOptionsOutputDto,
+  AdminProductDetailDto,
   AdminProductsBulkUpdateInputDto,
   AdminProductsBulkUpdateOutputDto,
   AdminProductsListOutputDto,
@@ -17,6 +18,7 @@ import type {
   ProductDetailDto,
   ProductRecommendationDto,
   StoreCategoriesOutputDto,
+  UpdateProductInputDto,
 } from "@/modules/catalog/catalog.dto";
 import {
   bulkSetProductsActive,
@@ -24,7 +26,7 @@ import {
   countActiveProductsForCatalog,
   createProduct,
   findCategoryById,
-  updateProductById,
+  updateProductDetailsById,
   findActiveProductByIdForStore,
   findActiveProductsForCatalog,
   findActiveVariantsByProductId,
@@ -42,6 +44,7 @@ import {
   listStoreCategoriesWithActiveProductCount,
   setProductFeatured,
   listFeaturedProductsForAdmin,
+  getProductByIdForAdminEdit,
 } from "@/modules/catalog/catalog.repo";
 import { getActiveReservedVariantQtyMap, getVariantStockOnHandMap } from "@/modules/variants/variants.repo";
 
@@ -141,6 +144,24 @@ export async function getCatalogItems(query: CatalogListQueryDto): Promise<Catal
   };
 }
 
+function parseJsonFeatures(json: unknown): Array<{ key: string; value: string }> | null {
+  if (!json || !Array.isArray(json)) return null;
+  return json.filter(
+    (item): item is { key: string; value: string } =>
+      typeof item === "object" &&
+      item !== null &&
+      "key" in item &&
+      "value" in item &&
+      typeof (item as Record<string, unknown>).key === "string" &&
+      typeof (item as Record<string, unknown>).value === "string",
+  );
+}
+
+function parseJsonStringArray(json: unknown): string[] | null {
+  if (!json || !Array.isArray(json)) return null;
+  return json.filter((item): item is string => typeof item === "string");
+}
+
 function mapRowToProductDetail(
   row: NonNullable<Awaited<ReturnType<typeof findActiveProductByIdForStore>>>,
 ): ProductDetailDto {
@@ -150,6 +171,9 @@ function mapRowToProductDetail(
     isActive: row.is_active,
     images: [],
     variants: [],
+    description: row.description ?? null,
+    features: parseJsonFeatures(row.features),
+    paymentMethods: parseJsonStringArray(row.payment_methods),
   };
 }
 
@@ -302,7 +326,7 @@ export async function getStoreCategories(): Promise<StoreCategoriesOutputDto> {
 
 export async function updateCatalogProductForAdmin(
   productId: number,
-  data: { name?: string; categoryId?: number | null },
+  data: UpdateProductInputDto,
 ) {
   if (data.name !== undefined && data.name.trim().length === 0) {
     throw new AppError("BAD_REQUEST", 400, "Name cannot be empty.");
@@ -311,7 +335,26 @@ export async function updateCatalogProductForAdmin(
     const category = await findCategoryById(data.categoryId);
     if (!category) throw new AppError("BAD_REQUEST", 400, "Category not found.");
   }
-  return updateProductById(productId, data);
+  return updateProductDetailsById(productId, data);
+}
+
+export async function getProductForAdminEdit(productId: number): Promise<AdminProductDetailDto> {
+  const row = await getProductByIdForAdminEdit(productId);
+  if (!row) throw new AppError("NOT_FOUND", 404, "Product not found.");
+  return {
+    id: row.id,
+    name: row.name,
+    sku: row.sku,
+    slug: row.slug,
+    isActive: row.is_active,
+    isFeatured: row.is_featured,
+    categoryId: row.category_id,
+    categoryName: row.category_name ?? null,
+    description: row.description ?? null,
+    features: parseJsonFeatures(row.features),
+    paymentMethods: parseJsonStringArray(row.payment_methods),
+    createdAt: row.created_at.toISOString(),
+  };
 }
 
 export async function setProductFeaturedStatus(productId: number, isFeatured: boolean) {

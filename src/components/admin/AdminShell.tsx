@@ -6,7 +6,7 @@ import { ReactNode } from "react";
 import { ChevronRight } from "lucide-react";
 
 import { adminNavItems } from "@/components/admin/admin-nav";
-import { BrandMark } from "@/components/brand/BrandMark";
+import { BrandLogo } from "@/components/brand/BrandMark";
 import { ThemeToggle } from "@/components/store/ThemeToggle";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
@@ -59,9 +59,12 @@ export function AdminShell({
         {/* Sidebar */}
         <aside className="sticky top-0 hidden h-screen border-r border-border/50 bg-card/60 backdrop-blur-xl md:flex md:flex-col">
           {/* Logo */}
-          <div className="flex h-16 shrink-0 items-center px-4">
-            <Link href="/admin">
-              <BrandMark />
+          <div className="flex h-20 shrink-0 items-center px-4">
+            <Link href="/admin" className="inline-flex items-center gap-3">
+              <BrandLogo size={48} />
+              <span className="text-sm font-semibold tracking-[0.1em] text-foreground">
+                PRIMEGEARSTORE
+              </span>
             </Link>
           </div>
           <div className="mx-3 h-px bg-border/50" />

@@ -69,6 +69,32 @@ export type ProductDetailDto = {
   }>;
   isActive: boolean;
   variants: CatalogVariantDto[];
+  description: string | null;
+  features: Array<{ key: string; value: string }> | null;
+  paymentMethods: string[] | null;
+};
+
+export type AdminProductDetailDto = {
+  id: number;
+  name: string;
+  sku: string | null;
+  slug: string | null;
+  isActive: boolean;
+  isFeatured: boolean;
+  categoryId: number | null;
+  categoryName: string | null;
+  description: string | null;
+  features: Array<{ key: string; value: string }> | null;
+  paymentMethods: string[] | null;
+  createdAt: string;
+};
+
+export type UpdateProductInputDto = {
+  name?: string;
+  categoryId?: number | null;
+  description?: string | null;
+  features?: Array<{ key: string; value: string }> | null;
+  paymentMethods?: string[] | null;
 };
 
 export type ProductRecommendationDto = {

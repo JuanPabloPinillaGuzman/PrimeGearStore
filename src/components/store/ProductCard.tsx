@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 
 import { AddToCartButton } from "@/components/store/AddToCartButton";
 import { Price } from "@/components/store/Price";
@@ -30,7 +31,31 @@ function resolveStock(product: ProductCardProps["product"]) {
   return product.variants.some((v) => v.isInStock !== false);
 }
 
+function ImageFallback() {
+  return (
+    <div className="flex h-full w-full items-center justify-center bg-zinc-50 dark:bg-neutral-900">
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="36"
+        height="36"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        className="text-zinc-300 dark:text-neutral-600"
+      >
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    </div>
+  );
+}
+
 export function ProductCard({ product, variant = "catalog" }: ProductCardProps) {
+  const [imgError, setImgError] = useState(false);
   const href = resolveProductHref(product);
   const hasPrice = !!product.price;
   const inStock = resolveStock(product);
@@ -43,24 +68,27 @@ export function ProductCard({ product, variant = "catalog" }: ProductCardProps) 
       ? (product.variants[0]?.id ?? null)
       : null;
 
+  const imageHeight = isFeatured ? "h-52" : "h-48";
+  const hasImage = !!product.image?.url && !imgError;
+
   return (
     <div className={`group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md hover:shadow-black/5${isFeatured ? " h-full" : ""}`}>
       {/* Image */}
-      <Link href={href} className={`relative block overflow-hidden bg-muted/30${isFeatured ? " h-52 shrink-0" : " aspect-square"}`}>
-        {product.image?.url ? (
+      <Link
+        href={href}
+        className={`relative block overflow-hidden ${imageHeight} shrink-0 bg-white dark:bg-neutral-950`}
+      >
+        {hasImage ? (
           <Image
-            src={product.image.url}
-            alt={product.image.alt ?? product.name}
+            src={product.image!.url}
+            alt={product.image!.alt ?? product.name}
             fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="object-cover transition duration-500 group-hover:scale-[1.04]"
+            className="object-contain p-2 transition duration-500 group-hover:scale-[1.03]"
+            onError={() => setImgError(true)}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center">
-            <span className="font-display text-xs font-bold tracking-[0.3em] text-muted-foreground/50">
-              PG
-            </span>
-          </div>
+          <ImageFallback />
         )}
       </Link>
 

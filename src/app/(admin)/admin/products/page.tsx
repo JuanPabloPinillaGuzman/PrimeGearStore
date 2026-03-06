@@ -429,6 +429,9 @@ export default function AdminProductsListPage() {
                               <Link href={`/admin/variants?productId=${item.id}`}>Variantes</Link>
                             </Button>
                             <Button asChild size="sm" variant="outline">
+                              <Link href={`/admin/products/${item.id}`}>Editar</Link>
+                            </Button>
+                            <Button asChild size="sm" variant="outline">
                               <Link href={`/admin/products/${item.id}/images`}>Imágenes</Link>
                             </Button>
                           </div>

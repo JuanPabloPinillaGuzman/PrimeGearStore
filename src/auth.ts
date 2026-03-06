@@ -3,7 +3,9 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 
+import { authConfig } from "@/auth.config";
 import { loadCredentialUsers } from "@/lib/auth/credentials-users";
+import { authenticateStoreUser } from "@/modules/auth/auth.service";
 
 const credentialsSchema = z.object({
   email: z.string().email(),
@@ -11,9 +13,7 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  session: {
-    strategy: "jwt",
-  },
+  ...authConfig,
   providers: [
     Credentials({
       name: "Credentials",
@@ -27,39 +27,31 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           return null;
         }
 
+        // 1. Check env-var credential users (admin / staff)
         const users = loadCredentialUsers();
-        const user = users.find((entry) => entry.email === parsed.data.email.toLowerCase());
-        if (!user) {
-          return null;
+        const envUser = users.find((entry) => entry.email === parsed.data.email.toLowerCase());
+        if (envUser) {
+          const isValid = await compare(parsed.data.password, envUser.passwordHash);
+          if (!isValid) return null;
+          return {
+            id: envUser.id,
+            email: envUser.email,
+            name: envUser.name,
+            role: envUser.role,
+          };
         }
 
-        const isValid = await compare(parsed.data.password, user.passwordHash);
-        if (!isValid) {
-          return null;
-        }
+        // 2. Check store customers in DB (only verified emails)
+        const storeUser = await authenticateStoreUser(parsed.data.email, parsed.data.password);
+        if (!storeUser) return null;
 
         return {
-          id: user.id,
-          email: user.email,
-          name: user.name,
-          role: user.role,
+          id: String(storeUser.id),
+          email: storeUser.email,
+          name: storeUser.fullName,
+          role: "CUSTOMER",
         };
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.role = (token.role as string) ?? "CUSTOMER";
-      }
-      return session;
-    },
-  },
 });
