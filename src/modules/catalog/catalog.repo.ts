@@ -8,6 +8,7 @@ export async function findActiveProductsForCatalog(params: {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  featured?: boolean;
   sort?: "RELEVANCE" | "PRICE_ASC" | "PRICE_DESC" | "NEWEST" | "TOP_SELLERS";
   limit: number;
   offset: number;
@@ -140,6 +141,7 @@ export async function countActiveProductsForCatalog(params: {
   minPrice?: number;
   maxPrice?: number;
   inStock?: boolean;
+  featured?: boolean;
 }) {
   const today = new Date().toISOString().slice(0, 10);
   const like = params.search ? `%${params.search}%` : null;
@@ -222,6 +224,7 @@ function buildCatalogWhereSql(
     minPrice?: number;
     maxPrice?: number;
     inStock?: boolean;
+    featured?: boolean;
   },
   like: string | null,
 ) {
@@ -242,8 +245,31 @@ function buildCatalogWhereSql(
   if (params.inStock === true) {
     conditions.push(Prisma.sql`COALESCE(ps.available_qty, 0) > 0`);
   }
+  if (params.featured) {
+    conditions.push(Prisma.sql`p.is_featured = true`);
+  }
 
   return Prisma.sql`WHERE ${Prisma.join(conditions, " AND ")}`;
+}
+
+export async function setProductFeatured(productId: number, isFeatured: boolean) {
+  await prisma.$executeRaw`
+    UPDATE inventory.products
+    SET is_featured = ${isFeatured}
+    WHERE id = ${productId}
+  `;
+  return { id: productId, isFeatured };
+}
+
+export async function listFeaturedProductsForAdmin() {
+  return prisma.$queryRaw<
+    Array<{ id: number; name: string; sku: string | null; category_id: number | null }>
+  >(Prisma.sql`
+    SELECT id, name, sku, category_id
+    FROM inventory.products
+    WHERE is_featured = true AND is_active = true
+    ORDER BY created_at DESC
+  `);
 }
 
 function buildCatalogOrderSql(
@@ -571,36 +597,41 @@ export async function listProductsForAdmin(params: {
   limit: number;
   offset: number;
 }) {
-  return prisma.product.findMany({
-    where: params.search
-      ? {
-          OR: [
-            { name: { contains: params.search, mode: "insensitive" } },
-            { sku: { contains: params.search, mode: "insensitive" } },
-            { slug: { contains: params.search, mode: "insensitive" } },
-          ],
-        }
-      : undefined,
-    select: {
-      id: true,
-      name: true,
-      sku: true,
-      slug: true,
-      isActive: true,
-      categoryId: true,
-      createdAt: true,
-      category: {
-        select: {
-          name: true,
-        },
-      },
-    },
-    orderBy: {
-      createdAt: "desc",
-    },
-    take: params.limit,
-    skip: params.offset,
-  });
+  const like = params.search ? `%${params.search}%` : null;
+  const whereSql = like
+    ? Prisma.sql`WHERE (p.name ILIKE ${like} OR p.sku ILIKE ${like} OR p.slug ILIKE ${like})`
+    : Prisma.sql``;
+
+  return prisma.$queryRaw<
+    Array<{
+      id: number;
+      name: string;
+      sku: string | null;
+      slug: string | null;
+      is_active: boolean;
+      is_featured: boolean;
+      category_id: number | null;
+      category_name: string | null;
+      created_at: Date;
+    }>
+  >(Prisma.sql`
+    SELECT
+      p.id,
+      p.name,
+      p.sku,
+      p.slug,
+      p.is_active,
+      p.is_featured,
+      p.category_id,
+      c.name AS category_name,
+      p.created_at
+    FROM inventory.products p
+    LEFT JOIN inventory.categories c ON c.id = p.category_id
+    ${whereSql}
+    ORDER BY p.created_at DESC
+    LIMIT ${params.limit}
+    OFFSET ${params.offset}
+  `);
 }
 
 export async function countProductsForAdmin(search?: string) {
@@ -713,4 +744,18 @@ export async function listStoreCategoriesWithActiveProductCount(limit = 12) {
     ORDER BY COUNT(p.id) DESC, c.name ASC
     LIMIT ${limit}
   `);
+}
+
+export async function updateProductById(
+  productId: number,
+  data: { name?: string; categoryId?: number | null },
+) {
+  return prisma.product.update({
+    where: { id: productId },
+    data: {
+      ...(data.name !== undefined && { name: data.name }),
+      ...(data.categoryId !== undefined && { categoryId: data.categoryId }),
+    },
+    select: { id: true, name: true, categoryId: true },
+  });
 }

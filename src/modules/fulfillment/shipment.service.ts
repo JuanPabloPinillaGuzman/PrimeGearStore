@@ -1,12 +1,12 @@
 import { ShipmentStatus } from "@prisma/client";
 
 import { AppError } from "@/lib/errors/app-error";
-import type { CreateShipmentInputDto, UpdateShipmentInputDto } from "@/modules/fulfillment/dto";
+import type { CreateShipmentInputDto, UpdateShipmentInputDto } from "@/modules/fulfillment/fulfillment.dto";
 import {
   findOrderWithShipments,
   updateShipmentForOrder,
   upsertShipmentForOrder,
-} from "@/modules/fulfillment/repo";
+} from "@/modules/fulfillment/fulfillment.repo";
 
 export async function createShipmentForOrder(input: CreateShipmentInputDto) {
   const order = await findOrderWithShipments(input.orderNumber);

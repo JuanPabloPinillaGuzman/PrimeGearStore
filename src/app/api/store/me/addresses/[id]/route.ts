@@ -2,8 +2,8 @@ import { auth } from "@/auth";
 import { AppError } from "@/lib/errors/app-error";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { deleteMyAddressById, updateMyAddress } from "@/modules/account/service";
-import { customerAddressIdParamsSchema, updateCustomerAddressSchema } from "@/modules/account/validators";
+import { deleteMyAddressById, updateMyAddress } from "@/modules/account/account.service";
+import { customerAddressIdParamsSchema, updateCustomerAddressSchema } from "@/modules/account/account.validators";
 
 type Params = {
   params: Promise<{ id: string }>;

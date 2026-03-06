@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 
 import { cn } from "@/lib/utils";
@@ -10,68 +11,89 @@ type GalleryImage = {
   alt: string | null;
 };
 
-export function ProductGallery({ images, fallbackLabel }: { images: GalleryImage[]; fallbackLabel: string }) {
+export function ProductGallery({
+  images,
+  fallbackLabel,
+}: {
+  images: GalleryImage[];
+  fallbackLabel: string;
+}) {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [direction, setDirection] = useState(0);
 
   const normalizedImages = useMemo(() => images.filter((img) => !!img.url), [images]);
   const active = normalizedImages[selectedIndex] ?? normalizedImages[0] ?? null;
 
+  function selectImage(index: number) {
+    setDirection(index > selectedIndex ? 1 : -1);
+    setSelectedIndex(index);
+  }
+
   if (!active) {
     return (
-      <div className="rounded-2xl border border-border/80 bg-card/70 p-4 shadow-sm">
-        <div className="flex h-[22rem] items-center justify-center rounded-xl bg-gradient-to-br from-muted to-muted/40 text-xs tracking-[0.2em] text-muted-foreground">
-          {fallbackLabel}
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card">
+        <div className="flex aspect-square w-full items-center justify-center bg-gradient-to-br from-muted to-muted/30">
+          <span className="font-display text-sm font-bold tracking-[0.3em] text-muted-foreground/40">
+            {fallbackLabel}
+          </span>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="rounded-2xl border border-border/80 bg-card/70 p-4 shadow-sm">
-      <div className="overflow-hidden rounded-xl border border-border/60 bg-background">
-        <Image
-          src={active.url}
-          alt={active.alt ?? fallbackLabel}
-          width={1200}
-          height={900}
-          priority
-          className="h-[22rem] w-full object-cover md:h-[30rem]"
-        />
-      </div>
-
-      <div className="mt-3 grid grid-cols-4 gap-2">
-        {normalizedImages.slice(0, 4).map((image, index) => (
-          <button
-            key={`${image.url}-${index}`}
-            type="button"
-            aria-label={`Ver imagen ${index + 1}`}
-            onClick={() => setSelectedIndex(index)}
-            className={cn(
-              "overflow-hidden rounded-lg border bg-background transition",
-              index === selectedIndex
-                ? "border-foreground/30 shadow-sm"
-                : "border-border/60 hover:border-border",
-            )}
+    <div className="space-y-3">
+      {/* Main image */}
+      <div className="group relative aspect-square overflow-hidden rounded-3xl border border-border/70 bg-card">
+        <AnimatePresence initial={false} custom={direction} mode="wait">
+          <motion.div
+            key={active.url}
+            custom={direction}
+            initial={{ opacity: 0, x: direction * 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: direction * -20 }}
+            transition={{ duration: 0.25, ease: "easeOut" }}
+            className="absolute inset-0"
           >
             <Image
-              src={image.url}
-              alt={image.alt ?? fallbackLabel}
-              width={200}
-              height={160}
-              className="h-16 w-full object-cover"
+              src={active.url}
+              alt={active.alt ?? fallbackLabel}
+              fill
+              sizes="(max-width: 768px) 100vw, 50vw"
+              priority
+              className="object-cover transition duration-500 group-hover:scale-[1.03]"
             />
-          </button>
-        ))}
-        {normalizedImages.length === 1 &&
-          Array.from({ length: 3 }).map((_, index) => (
-            <div
-              key={`placeholder-${index}`}
-              className="flex h-16 items-center justify-center rounded-lg border border-dashed border-border/60 bg-muted/40 text-[10px] text-muted-foreground"
-            >
-              PRIME
-            </div>
-          ))}
+          </motion.div>
+        </AnimatePresence>
       </div>
+
+      {/* Thumbnails */}
+      {normalizedImages.length > 1 && (
+        <div className="flex gap-2 overflow-x-auto pb-1">
+          {normalizedImages.map((image, index) => (
+            <button
+              key={`${image.url}-${index}`}
+              type="button"
+              aria-label={`Ver imagen ${index + 1}`}
+              onClick={() => selectImage(index)}
+              className={cn(
+                "relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-all duration-150",
+                index === selectedIndex
+                  ? "border-primary shadow-sm ring-2 ring-primary/30"
+                  : "border-border/60 opacity-60 hover:opacity-100",
+              )}
+            >
+              <Image
+                src={image.url}
+                alt={image.alt ?? fallbackLabel}
+                fill
+                sizes="64px"
+                className="object-cover"
+              />
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

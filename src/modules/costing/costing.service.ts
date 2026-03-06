@@ -6,7 +6,7 @@ import {
   getVariantAvgCostWithFallback,
   getVariantStockOnHand,
   upsertVariantAvgCost,
-} from "@/modules/costing/repo";
+} from "@/modules/costing/costing.repo";
 
 function roundCurrency(value: Prisma.Decimal) {
   return value.toDecimalPlaces(2, Prisma.Decimal.ROUND_HALF_UP);

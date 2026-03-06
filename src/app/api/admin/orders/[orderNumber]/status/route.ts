@@ -1,11 +1,11 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { auth } from "@/auth";
-import { updateAdminOrderStatus } from "@/modules/admin-orders/service";
+import { updateAdminOrderStatus } from "@/modules/admin-orders/admin-orders.service";
 import {
   adminOrderNumberParamsSchema,
   updateOrderStatusSchema,
-} from "@/modules/admin-orders/validators";
+} from "@/modules/admin-orders/admin-orders.validators";
 
 type Params = {
   params: Promise<{

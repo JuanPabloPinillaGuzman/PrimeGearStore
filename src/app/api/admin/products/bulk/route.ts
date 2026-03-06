@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { bulkUpdateCatalogProductsForAdmin } from "@/modules/catalog/service";
-import { adminProductsBulkSchema } from "@/modules/catalog/validators";
+import { bulkUpdateCatalogProductsForAdmin } from "@/modules/catalog/catalog.service";
+import { adminProductsBulkSchema } from "@/modules/catalog/catalog.validators";
 
 export async function POST(request: Request) {
   try {

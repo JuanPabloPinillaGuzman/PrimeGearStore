@@ -4,8 +4,8 @@ import { notFound, permanentRedirect } from "next/navigation";
 
 import { PdpPanel } from "@/components/store/PdpPanel";
 import { ProductGallery } from "@/components/store/ProductGallery";
-import { getCatalogProductDetailBySlugWithStock, getStoreRecommendations } from "@/modules/catalog/service";
-import { findProductSlugById } from "@/modules/catalog/repo";
+import { getCatalogProductDetailBySlugWithStock, getStoreRecommendations } from "@/modules/catalog/catalog.service";
+import { findProductSlugById } from "@/modules/catalog/catalog.repo";
 
 type Params = {
   params: Promise<{

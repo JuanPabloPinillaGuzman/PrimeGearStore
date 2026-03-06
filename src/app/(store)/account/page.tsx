@@ -6,7 +6,7 @@ import { AccountLayout } from "@/components/store/account/AccountLayout";
 import { AccountRecommendations } from "@/components/store/account/AccountRecommendations";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { getMe } from "@/modules/account/service";
+import { getMe } from "@/modules/account/account.service";
 
 export default async function AccountOverviewPage() {
   const session = await auth();

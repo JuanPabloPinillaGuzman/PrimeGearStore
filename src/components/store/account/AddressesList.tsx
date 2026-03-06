@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
 
 type AddressItem = {
   id: string;
@@ -61,15 +62,11 @@ export function AddressesList({
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch("/api/store/me/addresses", { cache: "no-store" });
-      const payload = (await response.json()) as AddressesResponse | { error?: { message?: string } };
-      if (!response.ok || !("data" in payload)) {
-        throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar direcciones.");
-      }
+      const payload = await requestJson<AddressesResponse>("/api/store/me/addresses", { cache: "no-store" });
       setItems(payload.data.items);
       onAddressesChange?.(payload.data.items);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "No fue posible cargar direcciones.");
+      setError(getErrorMessage(e, "No fue posible cargar direcciones."));
       setItems([]);
       onAddressesChange?.([]);
     } finally {

@@ -5,7 +5,7 @@ import type {
   NotificationChannel,
   NotificationEventType,
   OutboxStatus,
-} from "@/modules/notifications/dto";
+} from "@/modules/notifications/notifications.dto";
 
 type DbClient = Prisma.TransactionClient | typeof prisma;
 

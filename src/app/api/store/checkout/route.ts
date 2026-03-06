@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { checkoutFromCart } from "@/modules/webstore/service";
-import { checkoutSchema } from "@/modules/webstore/validators";
+import { checkoutFromCart } from "@/modules/webstore/webstore.service";
+import { checkoutSchema } from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   try {

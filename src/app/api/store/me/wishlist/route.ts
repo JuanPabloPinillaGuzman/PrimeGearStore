@@ -1,7 +1,7 @@
 import { auth } from "@/auth";
 import { AppError } from "@/lib/errors/app-error";
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
-import { getMyWishlist } from "@/modules/wishlist/service";
+import { getMyWishlist } from "@/modules/wishlist/wishlist.service";
 
 export async function GET(request: Request) {
   try {

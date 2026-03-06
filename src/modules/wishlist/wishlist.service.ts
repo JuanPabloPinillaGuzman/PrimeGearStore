@@ -1,6 +1,6 @@
 import { AppError } from "@/lib/errors/app-error";
 import { prisma } from "@/lib/db/prisma";
-import { resolveCustomerContext } from "@/modules/account/service";
+import { resolveCustomerContext } from "@/modules/account/account.service";
 import type {
   PersonalizedRecommendationsOutputDto,
   WishlistListOutputDto,
@@ -8,7 +8,7 @@ import type {
   WishlistMergeOutputDto,
   WishlistToggleInputDto,
   WishlistToggleOutputDto,
-} from "@/modules/wishlist/dto";
+} from "@/modules/wishlist/wishlist.dto";
 import {
   countWishlistItems,
   deleteWishlistItem,
@@ -19,7 +19,7 @@ import {
   insertWishlistItemsIgnoreConflicts,
   listPersonalizedRecommendationsByCustomerId,
   listWishlistProductsByCustomerId,
-} from "@/modules/wishlist/repo";
+} from "@/modules/wishlist/wishlist.repo";
 
 type SessionUser = { email?: string | null; name?: string | null; role?: string | null };
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];

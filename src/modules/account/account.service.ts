@@ -7,7 +7,7 @@ import type {
   MeOrdersOutputDto,
   MeOrdersQueryDto,
   UpdateCustomerAddressInputDto,
-} from "@/modules/account/dto";
+} from "@/modules/account/account.dto";
 import {
   clearDefaultAddressForCustomer,
   countOrdersByCustomer,
@@ -18,7 +18,7 @@ import {
   listCustomerAddresses,
   listOrdersByCustomer,
   updateCustomerAddress,
-} from "@/modules/account/repo";
+} from "@/modules/account/account.repo";
 
 function mapAddressRow(row: Awaited<ReturnType<typeof listCustomerAddresses>>[number]) {
   return {

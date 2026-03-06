@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { recordPaymentEvent } from "@/modules/webstore/payment.service";
-import { mockApprovePaymentSchema } from "@/modules/webstore/validators";
+import { mockApprovePaymentSchema } from "@/modules/webstore/webstore.validators";
 
 function generateMockProviderRef() {
   const now = new Date();

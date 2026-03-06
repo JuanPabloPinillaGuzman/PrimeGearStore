@@ -1,5 +1,7 @@
 "use client";
 
+import { motion } from "motion/react";
+
 import { cn } from "@/lib/utils";
 
 type Variant = {
@@ -23,35 +25,46 @@ export function VariantSelector({ variants, selectedId, onChange }: Props) {
 
   return (
     <div className="space-y-3">
-      <div>
-        <p className="text-sm font-medium">Selecciona variante</p>
-        <p className="text-xs text-muted-foreground">Talla / color / presentación</p>
-      </div>
+      <p className="text-sm font-semibold">Variante</p>
       <div className="flex flex-wrap gap-2" role="radiogroup" aria-label="Variantes del producto">
         {variants.map((variant) => {
           const active = selectedId === variant.id;
           const disabled = variant.isInStock === false || !variant.price;
+
           return (
-            <button
+            <motion.button
               key={variant.id}
               type="button"
               role="radio"
               aria-checked={active}
               aria-disabled={disabled}
               onClick={() => !disabled && onChange(variant.id)}
+              whileTap={!disabled ? { scale: 0.94 } : undefined}
               className={cn(
-                "min-w-[9rem] rounded-xl border px-3 py-2 text-left transition",
+                "relative rounded-xl border px-3.5 py-2 text-left text-sm transition-all duration-150",
                 active
-                  ? "border-foreground/30 bg-foreground/[0.03] shadow-sm"
-                  : "border-border/70 bg-background hover:border-border",
-                disabled && "cursor-not-allowed opacity-55",
+                  ? "border-primary bg-primary/8 font-semibold shadow-sm"
+                  : "border-border/70 bg-background hover:border-primary/40",
+                disabled && "cursor-not-allowed opacity-40",
               )}
             >
-              <p className="text-sm font-medium leading-tight">{variant.name}</p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                {variant.isInStock === false ? "Sin stock" : variant.availableToSell ? `${variant.availableToSell} disp.` : "Disponible"}
-              </p>
-            </button>
+              {/* Active indicator ring */}
+              {active && (
+                <motion.span
+                  layoutId="variant-active-ring"
+                  className="absolute inset-0 rounded-xl border-2 border-primary"
+                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                />
+              )}
+              <span className="relative block leading-tight">{variant.name}</span>
+              <span className="relative mt-0.5 block text-[11px] text-muted-foreground">
+                {variant.isInStock === false
+                  ? "Sin stock"
+                  : variant.availableToSell
+                    ? `${variant.availableToSell} disp.`
+                    : "Disponible"}
+              </span>
+            </motion.button>
           );
         })}
       </div>

@@ -47,6 +47,10 @@ export async function createCoupon(
   });
 }
 
+export async function deleteCouponByCode(code: string, db: DbClient = prisma) {
+  return db.coupon.delete({ where: { code } });
+}
+
 export async function updateCouponByCode(
   code: string,
   data: Prisma.CouponUpdateInput,

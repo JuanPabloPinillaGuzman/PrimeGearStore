@@ -1,12 +1,10 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
 
+import { AddToCartButton } from "@/components/store/AddToCartButton";
 import { Price } from "@/components/store/Price";
-import { QuickViewDialog } from "@/components/store/QuickViewDialog";
-import { WishlistButton } from "@/components/store/WishlistButton";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardFooter } from "@/components/ui/card";
 
 type ProductCardProps = {
   product: {
@@ -17,8 +15,10 @@ type ProductCardProps = {
     category: { id: number; name: string } | null;
     price: { amount: string; currency: string } | null;
     image: { url: string; alt: string | null } | null;
-    variants?: Array<{ isInStock?: boolean }>;
+    variants?: Array<{ id: string; isInStock?: boolean }>;
   };
+  index?: number;
+  variant?: "catalog" | "featured";
 };
 
 function resolveProductHref(product: ProductCardProps["product"]) {
@@ -27,96 +27,89 @@ function resolveProductHref(product: ProductCardProps["product"]) {
 
 function resolveStock(product: ProductCardProps["product"]) {
   if (!product.variants || product.variants.length === 0) return undefined;
-  return product.variants.some((variant) => variant.isInStock !== false);
+  return product.variants.some((v) => v.isInStock !== false);
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, variant = "catalog" }: ProductCardProps) {
   const href = resolveProductHref(product);
   const hasPrice = !!product.price;
   const inStock = resolveStock(product);
   const showNoStock = inStock === false;
+  const canAddToCart = hasPrice && !showNoStock;
+  const isFeatured = variant === "featured";
+
+  const singleVariantId =
+    product.variants && product.variants.length === 1
+      ? (product.variants[0]?.id ?? null)
+      : null;
 
   return (
-    <Card
-      className="group gap-0 overflow-hidden border-border/80 bg-card/90 py-0 shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-black/5"
-      data-testid={`product-card-${product.id}`}
-    >
-      <div className="relative">
+    <div className={`group flex flex-col overflow-hidden rounded-2xl border border-border/70 bg-card shadow-sm transition-shadow hover:shadow-md hover:shadow-black/5${isFeatured ? " h-full" : ""}`}>
+      {/* Image */}
+      <Link href={href} className={`relative block overflow-hidden bg-muted/30${isFeatured ? " h-52 shrink-0" : " aspect-square"}`}>
         {product.image?.url ? (
           <Image
             src={product.image.url}
             alt={product.image.alt ?? product.name}
-            width={640}
-            height={480}
+            fill
             sizes="(max-width: 640px) 100vw, (max-width: 1280px) 50vw, 33vw"
-            className="h-52 w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+            className="object-cover transition duration-500 group-hover:scale-[1.04]"
           />
         ) : (
-          <div className="flex h-52 w-full items-center justify-center bg-gradient-to-br from-muted to-muted/30">
-            <div className="flex h-14 w-14 items-center justify-center rounded-2xl border border-border/60 bg-background/70 text-xs font-semibold tracking-[0.18em] text-foreground/80 shadow-xs">
+          <div className="flex h-full w-full items-center justify-center">
+            <span className="font-display text-xs font-bold tracking-[0.3em] text-muted-foreground/50">
               PG
-            </div>
+            </span>
           </div>
         )}
-        <div className="absolute left-3 top-3 flex flex-wrap gap-2">
-          {!hasPrice ? (
-            <Badge variant="outline" className="bg-background/90">
-              Sin precio
-            </Badge>
-          ) : null}
-          {showNoStock ? (
-            <Badge variant="secondary" className="bg-background/90 text-foreground">
-              Sin stock
-            </Badge>
-          ) : null}
-        </div>
-        <div className="absolute right-3 top-3">
-          <WishlistButton productId={product.id} slug={product.slug} productName={product.name} />
-        </div>
-      </div>
+      </Link>
 
-      <CardContent className="space-y-3 p-4">
-        <div className="space-y-1">
-          <p className="line-clamp-2 min-h-[2.75rem] text-sm font-medium leading-5 tracking-tight">{product.name}</p>
+      {/* Info */}
+      <div className={`flex flex-1 flex-col gap-3 p-4${isFeatured ? " items-center text-center" : ""}`}>
+        <div className={`flex-1 space-y-0.5${isFeatured ? " text-center" : ""}`}>
+          <Link href={href} className="block">
+            <p className="line-clamp-2 text-sm font-semibold leading-snug tracking-tight hover:text-primary transition-colors">
+              {product.name}
+            </p>
+          </Link>
           <p className="text-xs text-muted-foreground">
-            {product.category?.name ?? "Sin categoria"}
-            {product.sku ? ` · ${product.sku}` : ""}
+            {product.category?.name ?? "Sin categoría"}
           </p>
         </div>
 
         <Price
           amount={product.price?.amount}
           currency={product.price?.currency ?? "COP"}
-          className="text-base font-semibold tracking-tight"
+          className={`text-base font-bold tracking-tight${isFeatured ? " text-center" : ""}`}
         />
-      </CardContent>
 
-      <CardFooter className="grid grid-cols-1 gap-2 border-t border-border/60 p-4">
-        <div className="grid grid-cols-2 gap-2">
-          <Button asChild variant="outline" className="flex-1">
-            <Link href={href} prefetch>
-              Ver
-            </Link>
-          </Button>
-          <QuickViewDialog slug={product.slug} productName={product.name} />
-        </div>
-        <Button asChild variant="outline" className="flex-1">
-          <Link href={href} prefetch>
-            Detalles
+        {isFeatured ? (
+          <Link
+            href={href}
+            className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            Dar un vistazo
           </Link>
-        </Button>
-        {hasPrice && !showNoStock ? (
-          <Button asChild className="w-full">
-            <Link href={href} prefetch>
-              Agregar
-            </Link>
-          </Button>
+        ) : canAddToCart ? (
+          <AddToCartButton
+            productId={product.id}
+            variantId={singleVariantId}
+            disabled={!canAddToCart || (product.variants?.length ?? 0) > 1}
+            disabledReason={
+              (product.variants?.length ?? 0) > 1
+                ? "Selecciona una variante en la página del producto."
+                : null
+            }
+          />
         ) : (
-          <Button className="w-full" disabled aria-disabled>
-            Agregar
-          </Button>
+          <Link
+            href={href}
+            className="inline-flex h-10 w-full items-center justify-center rounded-full bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            {showNoStock ? "Sin stock" : "Ver producto"}
+          </Link>
         )}
-      </CardFooter>
-    </Card>
+      </div>
+    </div>
   );
 }

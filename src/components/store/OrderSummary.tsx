@@ -1,7 +1,10 @@
 "use client";
 
+import { ArrowRight, ShieldCheck } from "lucide-react";
+
 import { Price } from "@/components/store/Price";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 
 type Props = {
   subtotal: string;
@@ -24,40 +27,66 @@ export function OrderSummary({
 }: Props) {
   return (
     <aside
-      className="rounded-2xl border border-border/80 bg-card/80 p-5 shadow-sm lg:sticky lg:top-24"
+      className="surface-elevated rounded-3xl border border-border/60 p-6 shadow-lg lg:sticky lg:top-24"
       data-testid="checkout-summary"
     >
-      <h2 className="text-base font-semibold tracking-tight">Resumen</h2>
-      <div className="mt-4 space-y-3 text-sm">
+      <h2 className="font-display text-lg font-extrabold tracking-tight">Resumen del pedido</h2>
+
+      <div className="mt-5 space-y-3 text-sm">
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Subtotal</span>
-          <Price amount={subtotal} currency={currency} className="font-medium" />
+          <Price amount={subtotal} currency={currency} className="font-semibold" />
         </div>
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground">Descuento</span>
-          <Price amount={discount} currency={currency} className="font-medium" />
-        </div>
+        {Number(discount) > 0 && (
+          <div className="flex items-center justify-between text-emerald-600">
+            <span>Descuento</span>
+            <Price amount={discount} currency={currency} className="font-semibold" />
+          </div>
+        )}
         <div className="flex items-center justify-between">
           <span className="text-muted-foreground">Envío</span>
-          <span className="font-medium">$0</span>
+          <span className="font-semibold text-emerald-600">Gratis</span>
         </div>
-        <div className="border-t border-border/60 pt-3">
-          <div className="flex items-center justify-between">
-            <span className="font-medium">Total</span>
-            <Price amount={total} currency={currency} className="text-base font-semibold" />
-          </div>
+
+        <Separator />
+
+        <div className="flex items-center justify-between pt-1">
+          <span className="font-semibold">Total</span>
+          <Price
+            amount={total}
+            currency={currency}
+            className="font-display text-2xl font-extrabold tracking-tight"
+          />
         </div>
       </div>
-      {error ? <p className="mt-3 rounded-lg border border-red-200 bg-red-50 p-2 text-xs text-red-700">{error}</p> : null}
+
+      {error && (
+        <p className="mt-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs text-red-700">
+          {error}
+        </p>
+      )}
+
       <Button
-        className="mt-4 w-full rounded-full"
         size="lg"
+        className="mt-5 w-full rounded-full shadow-lg shadow-primary/20"
         onClick={onCheckout}
         disabled={loading}
         data-testid="checkout-continue-button"
       >
-        {loading ? "Redirigiendo..." : "Continuar al pago"}
+        {loading ? (
+          "Redirigiendo..."
+        ) : (
+          <>
+            Continuar al pago
+            <ArrowRight className="ml-1.5 size-4" />
+          </>
+        )}
       </Button>
+
+      <div className="mt-4 flex items-center justify-center gap-1.5 text-xs text-muted-foreground">
+        <ShieldCheck className="size-3.5 text-emerald-500" />
+        Pago seguro con Mercado Pago
+      </div>
     </aside>
   );
 }

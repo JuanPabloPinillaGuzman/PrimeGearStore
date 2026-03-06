@@ -3,11 +3,11 @@ import { parseOrThrow } from "@/lib/validators/parse";
 import {
   createProductVariant,
   listProductVariants,
-} from "@/modules/variants/service";
+} from "@/modules/variants/variants.service";
 import {
   createVariantSchema,
   productIdParamsSchema,
-} from "@/modules/variants/validators";
+} from "@/modules/variants/variants.validators";
 
 type Params = {
   params: Promise<{

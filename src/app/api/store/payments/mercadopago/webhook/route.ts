@@ -6,7 +6,7 @@ import { processMercadoPagoWebhook } from "@/modules/webstore/mercadopago.servic
 import {
   mercadoPagoWebhookBodySchema,
   mercadoPagoWebhookQuerySchema,
-} from "@/modules/webstore/validators";
+} from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   const startedAt = Date.now();

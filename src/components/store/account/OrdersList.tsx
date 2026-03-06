@@ -9,6 +9,7 @@ import { Price } from "@/components/store/Price";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getErrorMessage, requestJson } from "@/lib/http/client";
 
 type MeOrder = {
   orderNumber: string;
@@ -36,15 +37,13 @@ export function OrdersList() {
       setLoading(true);
       setError(null);
       try {
-        const response = await fetch("/api/store/me/orders?limit=20&offset=0", { cache: "no-store" });
-        const payload = (await response.json()) as MeOrdersResponse | { error?: { message?: string } };
-        if (!response.ok || !("data" in payload)) {
-          throw new Error(("error" in payload && payload.error?.message) || "No fue posible cargar pedidos.");
-        }
+        const payload = await requestJson<MeOrdersResponse>("/api/store/me/orders?limit=20&offset=0", {
+          cache: "no-store",
+        });
         if (!cancelled) setItems(payload.data.items);
       } catch (e) {
         if (!cancelled) {
-          setError(e instanceof Error ? e.message : "No fue posible cargar pedidos.");
+          setError(getErrorMessage(e, "No fue posible cargar pedidos."));
           setItems([]);
         }
       } finally {

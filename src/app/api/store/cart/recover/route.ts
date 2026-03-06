@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getRecoverCartByToken } from "@/modules/webstore/service";
-import { recoverCartQuerySchema } from "@/modules/webstore/validators";
+import { getRecoverCartByToken } from "@/modules/webstore/webstore.service";
+import { recoverCartQuerySchema } from "@/modules/webstore/webstore.validators";
 
 export async function GET(request: Request) {
   try {

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getProfitTopVariantsReport } from "@/modules/backoffice/service";
-import { profitTopVariantsQuerySchema } from "@/modules/backoffice/validators";
+import { getProfitTopVariantsReport } from "@/modules/backoffice/backoffice.service";
+import { profitTopVariantsQuerySchema } from "@/modules/backoffice/backoffice.validators";
 
 export async function GET(request: Request) {
   try {

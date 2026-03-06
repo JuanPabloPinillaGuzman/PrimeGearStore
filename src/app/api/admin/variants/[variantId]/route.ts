@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { updateVariantById } from "@/modules/variants/service";
-import { updateVariantSchema, variantIdParamsSchema } from "@/modules/variants/validators";
+import { updateVariantById } from "@/modules/variants/variants.service";
+import { updateVariantSchema, variantIdParamsSchema } from "@/modules/variants/variants.validators";
 
 type Params = {
   params: Promise<{

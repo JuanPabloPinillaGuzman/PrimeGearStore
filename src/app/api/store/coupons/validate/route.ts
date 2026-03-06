@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { validateCouponForCart } from "@/modules/coupons/service";
-import { validateCouponSchema } from "@/modules/coupons/validators";
+import { validateCouponForCart } from "@/modules/coupons/coupons.service";
+import { validateCouponSchema } from "@/modules/coupons/coupons.validators";
 
 export async function POST(request: Request) {
   try {

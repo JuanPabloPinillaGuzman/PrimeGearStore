@@ -2,11 +2,11 @@ import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-context";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { reconcileAdminOrderPayment } from "@/modules/admin-orders/service";
+import { reconcileAdminOrderPayment } from "@/modules/admin-orders/admin-orders.service";
 import {
   adminOrderNumberParamsSchema,
   reconcilePaymentSchema,
-} from "@/modules/admin-orders/validators";
+} from "@/modules/admin-orders/admin-orders.validators";
 
 type Params = {
   params: Promise<{

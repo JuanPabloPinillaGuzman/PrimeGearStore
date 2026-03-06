@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db/prisma";
 import type {
   CreateCustomerAddressInputDto,
   UpdateCustomerAddressInputDto,
-} from "@/modules/account/dto";
+} from "@/modules/account/account.dto";
 
 type TxClient = Parameters<Parameters<typeof prisma.$transaction>[0]>[0];
 

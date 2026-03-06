@@ -12,7 +12,7 @@ import {
   listAbandonedOpenCartsForRecovery,
   setCartRecoveryToken,
   withTransaction,
-} from "@/modules/webstore/repo";
+} from "@/modules/webstore/webstore.repo";
 
 export type ExpireReservationsJobOutput = {
   expiredReservations: number;

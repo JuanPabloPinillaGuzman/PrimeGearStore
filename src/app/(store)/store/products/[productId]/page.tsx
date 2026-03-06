@@ -1,6 +1,6 @@
 import { permanentRedirect, notFound } from "next/navigation";
 
-import { findProductSlugById } from "@/modules/catalog/repo";
+import { findProductSlugById } from "@/modules/catalog/catalog.repo";
 
 type Params = {
   params: Promise<{

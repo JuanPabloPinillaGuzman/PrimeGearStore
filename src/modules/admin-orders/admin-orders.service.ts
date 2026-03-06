@@ -5,8 +5,8 @@ import type {
   AdminOrdersListQueryDto,
   ReconcilePaymentInputDto,
   UpdateOrderStatusInputDto,
-} from "@/modules/admin-orders/dto";
-import { getOrderDetail, getSaleByOrderId, listOrders } from "@/modules/admin-orders/repo";
+} from "@/modules/admin-orders/admin-orders.dto";
+import { getOrderDetail, getSaleByOrderId, listOrders } from "@/modules/admin-orders/admin-orders.repo";
 
 export async function listAdminOrders(query: AdminOrdersListQueryDto) {
   const rows = await listOrders(query);

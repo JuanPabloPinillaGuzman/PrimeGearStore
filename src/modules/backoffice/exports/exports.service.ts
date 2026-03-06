@@ -4,7 +4,7 @@ import {
   querySalesCsv,
   queryStockCsv,
   queryVariantsCsv,
-} from "@/modules/backoffice/exports/repo";
+} from "@/modules/backoffice/exports/exports.repo";
 
 function csvEscape(value: unknown) {
   if (value === null || value === undefined) return "";

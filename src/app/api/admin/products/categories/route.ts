@@ -1,5 +1,5 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
-import { listCatalogProductCategoryOptionsForAdmin } from "@/modules/catalog/service";
+import { listCatalogProductCategoryOptionsForAdmin } from "@/modules/catalog/catalog.service";
 
 export async function GET(request: Request) {
   try {

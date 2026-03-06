@@ -35,16 +35,16 @@ export function DialogContent({ className, children }: { className?: string; chi
   );
 }
 
-export function DialogHeader({ children }: { children: ReactNode }) {
-  return <div className="mb-4 space-y-1">{children}</div>;
+export function DialogHeader({ children, className }: { children: ReactNode; className?: string }) {
+  return <div className={cn("mb-4 space-y-1", className)}>{children}</div>;
 }
 
-export function DialogTitle({ children }: { children: ReactNode }) {
-  return <h3 className="text-lg font-semibold tracking-tight">{children}</h3>;
+export function DialogTitle({ children, className }: { children: ReactNode; className?: string }) {
+  return <h3 className={cn("text-lg font-semibold tracking-tight", className)}>{children}</h3>;
 }
 
-export function DialogDescription({ children }: { children: ReactNode }) {
-  return <p className="text-sm text-muted-foreground">{children}</p>;
+export function DialogDescription({ children, className }: { children: ReactNode; className?: string }) {
+  return <p className={cn("text-sm text-muted-foreground", className)}>{children}</p>;
 }
 
 export function DialogFooter({ className, children }: { className?: string; children: ReactNode }) {

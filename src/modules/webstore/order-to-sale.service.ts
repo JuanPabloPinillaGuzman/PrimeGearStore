@@ -1,8 +1,8 @@
 import { OrderStatus, PaymentMethod, Prisma } from "@prisma/client";
 
 import { AppError } from "@/lib/errors/app-error";
-import { resolveVariantUnitCostForSale } from "@/modules/costing/service";
-import { redeemCouponForPaidOrderInTransaction } from "@/modules/coupons/service";
+import { resolveVariantUnitCostForSale } from "@/modules/costing/costing.service";
+import { redeemCouponForPaidOrderInTransaction } from "@/modules/coupons/coupons.service";
 import { enqueueOrderNotificationEventInTransaction } from "@/modules/notifications/outbox.service";
 import {
   applySaleDiscountSnapshot,
@@ -16,7 +16,7 @@ import {
   findSaleByOrderIdInNotes,
   updateOrderStatus,
   withTransaction,
-} from "@/modules/webstore/repo";
+} from "@/modules/webstore/webstore.repo";
 
 function assertAmountMatches(orderTotal: Prisma.Decimal, paymentAmount: Prisma.Decimal) {
   if (!orderTotal.equals(paymentAmount)) {

@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
 import { recordPaymentEvent } from "@/modules/webstore/payment.service";
-import { paymentWebhookSchema } from "@/modules/webstore/validators";
+import { paymentWebhookSchema } from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   try {

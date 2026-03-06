@@ -4,10 +4,11 @@ import { AppError } from "@/lib/errors/app-error";
 import type {
   ValidateCouponInputDto,
   ValidateCouponOutputDto,
-} from "@/modules/coupons/dto";
+} from "@/modules/coupons/coupons.dto";
 import {
   createCoupon,
   createCouponRedemption,
+  deleteCouponByCode,
   findCouponByCode,
   findCouponRedemptionByOrderId,
   findOpenCartWithItems,
@@ -16,7 +17,7 @@ import {
   listCoupons,
   lockCouponById,
   updateCouponByCode,
-} from "@/modules/coupons/repo";
+} from "@/modules/coupons/coupons.repo";
 
 function toDecimal(value: number | string | Prisma.Decimal) {
   return value instanceof Prisma.Decimal ? value : new Prisma.Decimal(value);
@@ -297,6 +298,13 @@ export async function updateAdminCouponByCode(
   });
 
   return { id: updated.id.toString(), code: updated.code, isActive: updated.isActive };
+}
+
+export async function deleteAdminCouponByCode(code: string) {
+  const existing = await findCouponByCode(code.trim().toUpperCase());
+  if (!existing) throw new AppError("NOT_FOUND", 404, "Coupon not found.");
+  await deleteCouponByCode(existing.code);
+  return { code: existing.code };
 }
 
 export async function getAdminCouponRedemptions(code: string) {

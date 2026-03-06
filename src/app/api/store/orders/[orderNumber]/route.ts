@@ -1,7 +1,7 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getOrderDetailsByNumber } from "@/modules/webstore/service";
-import { orderNumberParamsSchema } from "@/modules/webstore/validators";
+import { getOrderDetailsByNumber } from "@/modules/webstore/webstore.service";
+import { orderNumberParamsSchema } from "@/modules/webstore/webstore.validators";
 
 type Params = {
   params: Promise<{

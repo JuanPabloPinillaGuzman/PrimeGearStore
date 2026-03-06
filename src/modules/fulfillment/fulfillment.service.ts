@@ -3,7 +3,7 @@ import { OrderStatus } from "@prisma/client";
 import { AppError } from "@/lib/errors/app-error";
 import { logger } from "@/lib/logger";
 import { enqueueOrderNotificationEventInTransaction } from "@/modules/notifications/outbox.service";
-import type { UpdateFulfillmentStatusInputDto } from "@/modules/fulfillment/dto";
+import type { UpdateFulfillmentStatusInputDto } from "@/modules/fulfillment/fulfillment.dto";
 import {
   cancelOrderForAdmin,
   findOrderWithShipments,
@@ -11,7 +11,7 @@ import {
   markShipmentShipped,
   updateOrderStatusForFulfillment,
   withTransaction,
-} from "@/modules/fulfillment/repo";
+} from "@/modules/fulfillment/fulfillment.repo";
 
 function ensureShipmentTracking(order: NonNullable<Awaited<ReturnType<typeof findOrderWithShipments>>>) {
   const shipment = order.shipments[0];

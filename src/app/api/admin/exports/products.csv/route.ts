@@ -1,5 +1,5 @@
 import { handleRouteError } from "@/lib/errors/http";
-import { exportProductsCsv } from "@/modules/backoffice/exports/service";
+import { exportProductsCsv } from "@/modules/backoffice/exports/exports.service";
 
 export async function GET(request: Request) {
   try {

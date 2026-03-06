@@ -2,8 +2,8 @@ import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { logger } from "@/lib/logger";
 import { getRequestId } from "@/lib/request-context";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { listAdminOrders } from "@/modules/admin-orders/service";
-import { adminOrdersListQuerySchema } from "@/modules/admin-orders/validators";
+import { listAdminOrders } from "@/modules/admin-orders/admin-orders.service";
+import { adminOrdersListQuerySchema } from "@/modules/admin-orders/admin-orders.validators";
 
 export async function GET(request: Request) {
   const startedAt = Date.now();

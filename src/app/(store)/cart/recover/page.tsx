@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
-import { getRecoverCartByToken } from "@/modules/webstore/service";
+import { getRecoverCartByToken } from "@/modules/webstore/webstore.service";
 
 type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;

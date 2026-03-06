@@ -1,7 +1,7 @@
 import { handleRouteError } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { exportStockCsv } from "@/modules/backoffice/exports/service";
-import { stockCsvQuerySchema } from "@/modules/backoffice/exports/validators";
+import { exportStockCsv } from "@/modules/backoffice/exports/exports.service";
+import { stockCsvQuerySchema } from "@/modules/backoffice/exports/exports.validators";
 
 export async function GET(request: Request) {
   try {

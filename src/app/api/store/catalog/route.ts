@@ -2,8 +2,8 @@ import { createHash } from "node:crypto";
 
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { getCatalogItems } from "@/modules/catalog/service";
-import { catalogListQuerySchema } from "@/modules/catalog/validators";
+import { getCatalogItems } from "@/modules/catalog/catalog.service";
+import { catalogListQuerySchema } from "@/modules/catalog/catalog.validators";
 
 export async function GET(request: Request) {
   try {
@@ -13,11 +13,13 @@ export async function GET(request: Request) {
       .split(",")
       .map((value) => value.trim().toLowerCase())
       .filter(Boolean);
+    const featuredParam = url.searchParams.get("featured");
     const data = await getCatalogItems({
       search: rawQuery.search,
       categoryId: rawQuery.categoryId,
       minPrice: rawQuery.minPrice,
       maxPrice: rawQuery.maxPrice,
+      featured: featuredParam === "true" || featuredParam === "1" ? true : undefined,
       inStock:
         rawQuery.inStock === true ||
         rawQuery.inStock === "1" ||

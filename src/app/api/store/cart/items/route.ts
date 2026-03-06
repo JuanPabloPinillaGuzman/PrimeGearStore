@@ -1,11 +1,11 @@
 import { handleRouteError, jsonOk } from "@/lib/errors/http";
 import { parseOrThrow } from "@/lib/validators/parse";
-import { addItemToCart, removeCartItem, updateCartItem } from "@/modules/webstore/service";
+import { addItemToCart, removeCartItem, updateCartItem } from "@/modules/webstore/webstore.service";
 import {
   addCartItemSchema,
   removeCartItemSchema,
   updateCartItemSchema,
-} from "@/modules/webstore/validators";
+} from "@/modules/webstore/webstore.validators";
 
 export async function POST(request: Request) {
   try {

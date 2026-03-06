@@ -1,5 +1,28 @@
+import Image from "next/image";
+
 import { cn } from "@/lib/utils";
 
+/** Logo-only mark (used on mobile / tight spaces). */
+export function BrandLogo({
+  size = 48,
+  className,
+}: {
+  size?: number;
+  className?: string;
+}) {
+  return (
+    <Image
+      src="/logo.png"
+      alt="PrimeGearStore"
+      width={size}
+      height={size}
+      className={cn("object-contain", className)}
+      priority
+    />
+  );
+}
+
+/** Full brand mark: logo image + store name text as independent elements. */
 export function BrandMark({
   compact = false,
   className,
@@ -10,23 +33,22 @@ export function BrandMark({
   if (compact) {
     return (
       <span
-        className={cn(
-          "inline-flex h-8 w-8 items-center justify-center rounded-lg border border-border/70 bg-background text-xs font-semibold tracking-[0.14em] shadow-xs",
-          className,
-        )}
+        className={cn("inline-flex items-center justify-center", className)}
         aria-label="PrimeGearStore"
       >
-        PG
+        <BrandLogo size={44} />
       </span>
     );
   }
 
   return (
-    <span className={cn("inline-flex items-center gap-2", className)}>
-      <span className="inline-flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-xs font-semibold tracking-[0.14em] text-primary-foreground shadow-sm">
-        PG
+    <span className={cn("inline-flex items-center gap-2.5", className)}>
+      {/* Logo image — independently sized, visually prominent */}
+      <BrandLogo size={56} />
+      {/* Store name — independently styled, unchanged text size */}
+      <span className="text-base font-semibold tracking-[0.14em] text-foreground">
+        PRIMEGEARSTORE
       </span>
-      <span className="text-sm font-semibold tracking-[0.14em] text-foreground">PRIMEGEARSTORE</span>
     </span>
   );
 }

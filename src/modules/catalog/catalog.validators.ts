@@ -21,7 +21,7 @@ export const adminProductsBulkSchema = z.discriminatedUnion("action", [
 
 export const adminProductsListQuerySchema = z.object({
   search: z.string().trim().min(1).max(120).optional(),
-  limit: z.coerce.number().int().positive().max(100).default(20),
+  limit: z.coerce.number().int().positive().max(500).default(20),
   offset: z.coerce.number().int().nonnegative().default(0),
 });
 
@@ -46,3 +46,12 @@ export const catalogListQuerySchema = z.object({
 export const generateSlugsQuerySchema = z.object({
   limit: z.coerce.number().int().positive().max(5000).default(500),
 });
+
+export const updateProductSchema = z
+  .object({
+    name: z.string().trim().min(1).max(180).optional(),
+    categoryId: z.number().int().positive().nullable().optional(),
+  })
+  .refine((v) => v.name !== undefined || v.categoryId !== undefined, {
+    message: "At least one field is required.",
+  });

@@ -5,7 +5,7 @@ import type {
   CsvImportResultDto,
   ImportProductCsvRow,
   ImportVariantCsvRow,
-} from "@/modules/backoffice/imports/dto";
+} from "@/modules/backoffice/imports/imports.dto";
 import {
   findCategoryForImport,
   findProductForImportByIdOrSku,
@@ -14,8 +14,8 @@ import {
   prisma,
   upsertProductImport,
   upsertVariantImport,
-} from "@/modules/backoffice/imports/repo";
-import { importProductsCsvRowSchema, importVariantsCsvRowSchema } from "@/modules/backoffice/imports/validators";
+} from "@/modules/backoffice/imports/imports.repo";
+import { importProductsCsvRowSchema, importVariantsCsvRowSchema } from "@/modules/backoffice/imports/imports.validators";
 
 type ParsedCsv = {
   headers: string[];
