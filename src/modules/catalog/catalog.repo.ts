@@ -315,6 +315,9 @@ export async function findActiveProductByIdForStore(productId: number) {
       image_url: string | null;
       image_alt: string | null;
       is_active: boolean;
+      description: string | null;
+      features: Prisma.JsonValue | null;
+      payment_methods: Prisma.JsonValue | null;
     }>
   >(Prisma.sql`
     SELECT
@@ -328,7 +331,10 @@ export async function findActiveProductByIdForStore(productId: number) {
       vp.currency AS price_currency,
       pi.url AS image_url,
       pi.alt AS image_alt,
-      p.is_active
+      p.is_active,
+      p.description,
+      p.features,
+      p.payment_methods
     FROM inventory.products p
     LEFT JOIN inventory.categories c ON c.id = p.category_id
     LEFT JOIN LATERAL (
@@ -381,6 +387,9 @@ export async function findProductBySlugForStore(slug: string) {
       image_url: string | null;
       image_alt: string | null;
       is_active: boolean;
+      description: string | null;
+      features: Prisma.JsonValue | null;
+      payment_methods: Prisma.JsonValue | null;
     }>
   >(Prisma.sql`
     SELECT
@@ -394,7 +403,10 @@ export async function findProductBySlugForStore(slug: string) {
       vp.currency AS price_currency,
       pi.url AS image_url,
       pi.alt AS image_alt,
-      p.is_active
+      p.is_active,
+      p.description,
+      p.features,
+      p.payment_methods
     FROM inventory.products p
     LEFT JOIN inventory.categories c ON c.id = p.category_id
     LEFT JOIN LATERAL (
@@ -758,4 +770,77 @@ export async function updateProductById(
     },
     select: { id: true, name: true, categoryId: true },
   });
+}
+
+export async function updateProductDetailsById(
+  productId: number,
+  data: {
+    name?: string;
+    categoryId?: number | null;
+    description?: string | null;
+    features?: Array<{ key: string; value: string }> | null;
+    paymentMethods?: string[] | null;
+  },
+) {
+  const sets: Prisma.Sql[] = [];
+  if (data.name !== undefined) {
+    sets.push(Prisma.sql`name = ${data.name}`);
+  }
+  if (data.categoryId !== undefined) {
+    sets.push(Prisma.sql`category_id = ${data.categoryId}`);
+  }
+  if (data.description !== undefined) {
+    sets.push(Prisma.sql`description = ${data.description}`);
+  }
+  if (data.features !== undefined) {
+    const json = data.features !== null ? JSON.stringify(data.features) : null;
+    sets.push(Prisma.sql`features = ${json}::jsonb`);
+  }
+  if (data.paymentMethods !== undefined) {
+    const json = data.paymentMethods !== null ? JSON.stringify(data.paymentMethods) : null;
+    sets.push(Prisma.sql`payment_methods = ${json}::jsonb`);
+  }
+  if (sets.length === 0) return { id: productId };
+  await prisma.$executeRaw(
+    Prisma.sql`UPDATE inventory.products SET ${Prisma.join(sets, ", ")} WHERE id = ${productId}`,
+  );
+  return { id: productId };
+}
+
+export async function getProductByIdForAdminEdit(productId: number) {
+  const rows = await prisma.$queryRaw<
+    Array<{
+      id: number;
+      name: string;
+      sku: string | null;
+      slug: string | null;
+      is_active: boolean;
+      is_featured: boolean;
+      category_id: number | null;
+      category_name: string | null;
+      description: string | null;
+      features: Prisma.JsonValue | null;
+      payment_methods: Prisma.JsonValue | null;
+      created_at: Date;
+    }>
+  >(Prisma.sql`
+    SELECT
+      p.id,
+      p.name,
+      p.sku,
+      p.slug,
+      p.is_active,
+      p.is_featured,
+      p.category_id,
+      c.name AS category_name,
+      p.description,
+      p.features,
+      p.payment_methods,
+      p.created_at
+    FROM inventory.products p
+    LEFT JOIN inventory.categories c ON c.id = p.category_id
+    WHERE p.id = ${productId}
+    LIMIT 1
+  `);
+  return rows[0] ?? null;
 }

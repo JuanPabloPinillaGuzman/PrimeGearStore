@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ChevronDown, Package, RotateCcw, Truck } from "lucide-react";
+import { ChevronDown, CreditCard, Minus, Package, Plus, RotateCcw, Truck } from "lucide-react";
 import { motion, AnimatePresence } from "motion/react";
 import { useMemo, useState } from "react";
 
@@ -30,17 +30,26 @@ type Props = {
     category: { id: number; name: string } | null;
     price: { amount: string; currency: string } | null;
     variants: Variant[];
+    description?: string | null;
+    features?: Array<{ key: string; value: string }> | null;
+    paymentMethods?: string[] | null;
   };
 };
 
-const ACCORDION_ITEMS = [
+const PAYMENT_METHOD_DEFS = [
   {
-    id: "details",
-    icon: Package,
-    label: "Detalles del producto",
-    content:
-      "Producto de alta calidad fabricado con los mejores materiales. Diseñado para ofrecer la mejor experiencia de uso y durabilidad prolongada.",
+    id: "mercadopago",
+    label: "Mercado Pago",
+    icon: CreditCard,
   },
+  {
+    id: "contraentrega",
+    label: "Contraentrega",
+    icon: Truck,
+  },
+];
+
+const STATIC_ACCORDIONS = [
   {
     id: "shipping",
     icon: Truck,
@@ -60,11 +69,11 @@ const ACCORDION_ITEMS = [
 function AccordionItem({
   icon: Icon,
   label,
-  content,
+  children,
 }: {
   icon: typeof Package;
   label: string;
-  content: string;
+  children: React.ReactNode;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -96,7 +105,7 @@ function AccordionItem({
             transition={{ duration: 0.22, ease: "easeInOut" }}
             className="overflow-hidden"
           >
-            <p className="pb-4 text-sm leading-relaxed text-muted-foreground">{content}</p>
+            <div className="pb-4">{children}</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -108,6 +117,7 @@ export function PdpPanel({ product }: Props) {
   const [selectedVariantId, setSelectedVariantId] = useState<string | null>(
     product.variants[0]?.id ?? null,
   );
+  const [quantity, setQuantity] = useState(1);
 
   const selectedVariant = useMemo(
     () => product.variants.find((v) => v.id === selectedVariantId) ?? product.variants[0] ?? null,
@@ -117,6 +127,14 @@ export function PdpPanel({ product }: Props) {
   const activePrice = selectedVariant?.price ?? product.price ?? null;
   const hasVariants = product.variants.length > 0;
   const inStock = hasVariants ? (selectedVariant?.isInStock ?? false) : true;
+
+  const maxQty = useMemo(() => {
+    if (hasVariants && selectedVariant?.availableToSell) {
+      const parsed = parseInt(selectedVariant.availableToSell, 10);
+      return isNaN(parsed) || parsed <= 0 ? 1 : parsed;
+    }
+    return 99;
+  }, [hasVariants, selectedVariant]);
 
   const disabledReason = hasVariants
     ? !selectedVariant
@@ -130,9 +148,19 @@ export function PdpPanel({ product }: Props) {
       ? "El producto no tiene precio vigente."
       : null;
 
+  const enabledPaymentMethods = useMemo(() => {
+    if (!product.paymentMethods || product.paymentMethods.length === 0) {
+      return PAYMENT_METHOD_DEFS;
+    }
+    return PAYMENT_METHOD_DEFS.filter((def) => product.paymentMethods!.includes(def.id));
+  }, [product.paymentMethods]);
+
+  const hasDescription = !!product.description?.trim();
+  const hasFeatures = product.features && product.features.length > 0;
+
   return (
     <section className="space-y-6">
-      {/* Breadcrumb / Category */}
+      {/* Category */}
       {product.category && (
         <p className="text-xs font-semibold uppercase tracking-widest text-primary/70">
           {product.category.name}
@@ -184,20 +212,67 @@ export function PdpPanel({ product }: Props) {
         )}
       </div>
 
+      {/* Payment methods */}
+      {enabledPaymentMethods.length > 0 && (
+        <div className="flex flex-wrap gap-2">
+          {enabledPaymentMethods.map(({ id, label, icon: Icon }) => (
+            <div
+              key={id}
+              className="flex items-center gap-1.5 rounded-full border border-border/60 bg-muted/40 px-3 py-1.5 text-xs font-medium text-foreground/70"
+            >
+              <Icon className="size-3.5 text-primary/60" />
+              {label}
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Variant selector */}
       {hasVariants && (
         <VariantSelector
           variants={product.variants}
           selectedId={selectedVariant?.id ?? null}
-          onChange={setSelectedVariantId}
+          onChange={(id) => {
+            setSelectedVariantId(id);
+            setQuantity(1);
+          }}
         />
       )}
+
+      {/* Quantity selector */}
+      <div className="space-y-2">
+        <p className="text-sm font-semibold">Cantidad</p>
+        <div className="flex items-center gap-0 overflow-hidden rounded-xl border border-border/70 w-fit">
+          <button
+            type="button"
+            aria-label="Reducir cantidad"
+            onClick={() => setQuantity((q) => Math.max(1, q - 1))}
+            disabled={quantity <= 1}
+            className="flex h-10 w-10 items-center justify-center text-muted-foreground transition hover:bg-muted/60 disabled:opacity-40"
+          >
+            <Minus className="size-3.5" />
+          </button>
+          <span className="flex h-10 min-w-10 items-center justify-center border-x border-border/70 px-3 text-sm font-semibold tabular-nums">
+            {quantity}
+          </span>
+          <button
+            type="button"
+            aria-label="Aumentar cantidad"
+            onClick={() => setQuantity((q) => Math.min(maxQty, q + 1))}
+            disabled={quantity >= maxQty}
+            className="flex h-10 w-10 items-center justify-center text-muted-foreground transition hover:bg-muted/60 disabled:opacity-40"
+          >
+            <Plus className="size-3.5" />
+          </button>
+        </div>
+      </div>
 
       {/* Add to cart */}
       <div className="space-y-3 pt-1">
         <AddToCartButton
           productId={product.id}
           variantId={selectedVariant?.id ?? null}
+          quantity={quantity}
           disabled={!!disabledReason}
           disabledReason={disabledReason}
         />
@@ -211,8 +286,29 @@ export function PdpPanel({ product }: Props) {
 
       {/* Accordion info */}
       <div className="rounded-2xl border border-border/60 px-4 pt-1">
-        {ACCORDION_ITEMS.map((item) => (
-          <AccordionItem key={item.id} icon={item.icon} label={item.label} content={item.content} />
+        {hasDescription && (
+          <AccordionItem icon={Package} label="Descripción del producto">
+            <p className="text-sm leading-relaxed text-muted-foreground">{product.description}</p>
+          </AccordionItem>
+        )}
+
+        {hasFeatures && (
+          <AccordionItem icon={Package} label="Características">
+            <ul className="space-y-1.5">
+              {product.features!.map((feat, i) => (
+                <li key={i} className="flex gap-2 text-sm">
+                  <span className="min-w-0 font-medium text-foreground/80">{feat.key}:</span>
+                  <span className="text-muted-foreground">{feat.value}</span>
+                </li>
+              ))}
+            </ul>
+          </AccordionItem>
+        )}
+
+        {STATIC_ACCORDIONS.map((item) => (
+          <AccordionItem key={item.id} icon={item.icon} label={item.label}>
+            <p className="text-sm leading-relaxed text-muted-foreground">{item.content}</p>
+          </AccordionItem>
         ))}
       </div>
     </section>

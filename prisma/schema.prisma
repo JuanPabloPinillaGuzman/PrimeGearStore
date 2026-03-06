@@ -116,6 +116,9 @@ model Product {
   categoryId        Int?               @map("category_id")
   isActive          Boolean            @default(true) @map("is_active")
   isFeatured        Boolean            @default(false) @map("is_featured")
+  description       String?            @db.Text
+  features          Json?
+  paymentMethods    Json?              @map("payment_methods")
   createdAt         DateTime           @default(now()) @map("created_at") @db.Timestamp(6)
   category          Category?          @relation(fields: [categoryId], references: [id], onDelete: NoAction, onUpdate: NoAction)
   productPrices     ProductPrice[]

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { notFound, permanentRedirect } from "next/navigation";
 
 import { PdpPanel } from "@/components/store/PdpPanel";
+import { ProductCard } from "@/components/store/ProductCard";
 import { ProductGallery } from "@/components/store/ProductGallery";
 import { getCatalogProductDetailBySlugWithStock, getStoreRecommendations } from "@/modules/catalog/catalog.service";
 import { findProductSlugById } from "@/modules/catalog/catalog.repo";
@@ -95,13 +96,13 @@ export default async function ProductBySlugPage({ params }: Params) {
   };
 
   return (
-    <main className="pb-6">
-      <div className="mb-4">
+    <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6">
+      <div className="mb-5">
         <Link className="rounded-md border px-3 py-2 text-sm" href="/store">
           Volver al catalogo
         </Link>
       </div>
-      <div className="grid gap-6 lg:grid-cols-[1.08fr_0.92fr]">
+      <div className="grid gap-8 lg:grid-cols-[1fr_1fr] lg:items-start">
         <ProductGallery
           images={
             product.images.length > 0
@@ -116,23 +117,26 @@ export default async function ProductBySlugPage({ params }: Params) {
       </div>
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
-      <section className="mt-10 rounded-2xl border border-border/80 bg-card/70 p-4 shadow-sm sm:p-5">
-        <h2 className="mb-4 text-xl font-semibold">Te puede interesar</h2>
+      <section className="mt-10">
+        <h2 className="mb-5 text-xl font-semibold">Te puede interesar</h2>
         {recommendations.length === 0 ? (
           <p className="text-sm text-muted-foreground">Sin recomendaciones por ahora.</p>
         ) : (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            {recommendations.map((item) => (
-              <Link
-                key={item.id}
-                href={`/products/${item.slug ?? item.id}`}
-                className="rounded-xl border border-border/70 bg-background/60 p-3 text-sm transition hover:shadow-sm"
-              >
-                <p className="font-medium">{item.name}</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  {item.price ? `${item.price.currency} ${item.price.amount}` : "Sin precio"}
-                </p>
-              </Link>
+          <div className="flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-2 sm:overflow-visible lg:grid-cols-4">
+            {recommendations.slice(0, 8).map((item) => (
+              <div key={item.id} className="w-64 shrink-0 sm:w-auto">
+                <ProductCard
+                  product={{
+                    id: item.id,
+                    sku: null,
+                    slug: item.slug,
+                    name: item.name,
+                    category: null,
+                    price: item.price,
+                    image: item.image,
+                  }}
+                />
+              </div>
             ))}
           </div>
         )}

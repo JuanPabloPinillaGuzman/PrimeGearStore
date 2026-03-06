@@ -31,8 +31,8 @@ export function ProductGallery({
 
   if (!active) {
     return (
-      <div className="overflow-hidden rounded-3xl border border-border/70 bg-card">
-        <div className="flex aspect-square w-full items-center justify-center bg-gradient-to-br from-muted to-muted/30">
+      <div className="overflow-hidden rounded-3xl border border-border/70 bg-muted/20">
+        <div className="flex w-full max-h-[520px] min-h-[280px] items-center justify-center py-16">
           <span className="font-display text-sm font-bold tracking-[0.3em] text-muted-foreground/40">
             {fallbackLabel}
           </span>
@@ -43,25 +43,26 @@ export function ProductGallery({
 
   return (
     <div className="space-y-3">
-      {/* Main image */}
-      <div className="group relative aspect-square overflow-hidden rounded-3xl border border-border/70 bg-card">
+      {/* Main image — contain so no part of the product is ever clipped */}
+      <div className="relative w-full overflow-hidden rounded-3xl border border-border/70 bg-white dark:bg-neutral-950">
         <AnimatePresence initial={false} custom={direction} mode="wait">
           <motion.div
             key={active.url}
             custom={direction}
-            initial={{ opacity: 0, x: direction * 20 }}
+            initial={{ opacity: 0, x: direction * 16 }}
             animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: direction * -20 }}
-            transition={{ duration: 0.25, ease: "easeOut" }}
-            className="absolute inset-0"
+            exit={{ opacity: 0, x: direction * -16 }}
+            transition={{ duration: 0.22, ease: "easeOut" }}
+            className="flex w-full items-center justify-center"
           >
             <Image
               src={active.url}
               alt={active.alt ?? fallbackLabel}
-              fill
-              sizes="(max-width: 768px) 100vw, 50vw"
+              width={800}
+              height={600}
               priority
-              className="object-cover transition duration-500 group-hover:scale-[1.03]"
+              sizes="(max-width: 768px) 100vw, 50vw"
+              className="h-auto max-h-[520px] w-full object-contain"
             />
           </motion.div>
         </AnimatePresence>
@@ -77,7 +78,7 @@ export function ProductGallery({
               aria-label={`Ver imagen ${index + 1}`}
               onClick={() => selectImage(index)}
               className={cn(
-                "relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border transition-all duration-150",
+                "relative flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-xl border bg-white dark:bg-neutral-950 transition-all duration-150",
                 index === selectedIndex
                   ? "border-primary shadow-sm ring-2 ring-primary/30"
                   : "border-border/60 opacity-60 hover:opacity-100",
@@ -86,9 +87,10 @@ export function ProductGallery({
               <Image
                 src={image.url}
                 alt={image.alt ?? fallbackLabel}
-                fill
-                sizes="64px"
-                className="object-cover"
+                width={80}
+                height={80}
+                sizes="80px"
+                className="h-full w-full object-contain p-1"
               />
             </button>
           ))}

@@ -117,7 +117,7 @@ export default auth(async (request: AuthenticatedRequest) => {
 
     if (isAdminPage) {
       if (!isAuthenticated) {
-        const signInUrl = new URL("/api/auth/signin", request.url);
+        const signInUrl = new URL("/login", request.url);
         signInUrl.searchParams.set("callbackUrl", request.nextUrl.href);
         const response = NextResponse.redirect(signInUrl);
         response.headers.set("x-request-id", requestId);

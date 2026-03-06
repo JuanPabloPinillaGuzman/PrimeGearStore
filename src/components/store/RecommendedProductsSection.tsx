@@ -92,8 +92,8 @@ export function RecommendedProductsSection({
       ) : null}
       {!loading && !error && items.length > 0 ? (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-          {items.map((item) => (
-            <ProductCard key={item.id} product={item} />
+          {items.map((item, i) => (
+            <ProductCard key={item.id ?? `item-${i}`} product={item} />
           ))}
         </div>
       ) : null}
