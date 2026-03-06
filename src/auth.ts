@@ -3,6 +3,7 @@ import Credentials from "next-auth/providers/credentials";
 import { compare } from "bcryptjs";
 import { z } from "zod";
 
+import { authConfig } from "@/auth.config";
 import { loadCredentialUsers } from "@/lib/auth/credentials-users";
 import { authenticateStoreUser } from "@/modules/auth/auth.service";
 
@@ -12,12 +13,7 @@ const credentialsSchema = z.object({
 });
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  pages: {
-    signIn: "/login",
-  },
-  session: {
-    strategy: "jwt",
-  },
+  ...authConfig,
   providers: [
     Credentials({
       name: "Credentials",
@@ -58,19 +54,4 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    jwt({ token, user }) {
-      if (user) {
-        token.role = user.role;
-      }
-      return token;
-    },
-    session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.sub ?? "";
-        session.user.role = (token.role as string) ?? "CUSTOMER";
-      }
-      return session;
-    },
-  },
 });

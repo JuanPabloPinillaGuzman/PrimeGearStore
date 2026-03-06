@@ -1,7 +1,11 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
 
-import { auth } from "@/auth";
+import NextAuth from "next-auth";
+
+import { authConfig } from "@/auth.config";
+
+const { auth } = NextAuth(authConfig);
 import { ADMIN_ROLES } from "@/lib/auth/roles";
 import { consumeRateLimit } from "@/lib/rate-limit";
 import { applySecurityHeaders } from "@/lib/security-headers";
