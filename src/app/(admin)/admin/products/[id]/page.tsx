@@ -252,7 +252,7 @@ export default function AdminProductEditPage() {
         <Card>
           <CardHeader>
             <CardTitle>Descripción</CardTitle>
-            <CardDescription>Texto que aparece en el acordeón "Descripción del producto".</CardDescription>
+            <CardDescription>Texto que aparece en el acordeón &quot;Descripción del producto&quot;.</CardDescription>
           </CardHeader>
           <CardContent>
             <textarea
@@ -275,7 +275,7 @@ export default function AdminProductEditPage() {
           <CardHeader>
             <CardTitle>Características</CardTitle>
             <CardDescription>
-              Lista de pares clave–valor mostrados en el acordeón "Características".
+              Lista de pares clave–valor mostrados en el acordeón &quot;Características&quot;.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
